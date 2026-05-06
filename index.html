@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>&#54016; &#50629;&#47924; &#54788;&#54889; &#44172;&#49884;&#54032;</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="login-view" id="loginView" aria-labelledby="loginTitle">
+      <div class="login-panel">
+        <p class="eyebrow">Team Workspace</p>
+        <h1 id="loginTitle">&#50629;&#47924; &#54788;&#54889; &#44172;&#49884;&#54032;</h1>
+        <p class="login-copy">&#54016;&#50896; &#47196;&#44536;&#51064; &#54980; &#45216;&#51676;&#48324; &#54924;&#51032;&#50752; &#50629;&#47924; &#51652;&#54665; &#49345;&#54889;&#51012; &#54869;&#51064;&#54616;&#49464;&#50836;.</p>
+
+        <form class="login-form" id="loginForm">
+          <label for="userId">ID</label>
+          <input id="userId" name="userId" type="text" autocomplete="username" placeholder="43222" required>
+
+          <label for="password">&#48708;&#48128;&#48264;&#54840;</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="&#51060;&#48120; &#46321;&#47197;&#46108; &#51076;&#49884; &#48708;&#48128;&#48264;&#54840;" required>
+
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button type="submit">&#47196;&#44536;&#51064;</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="board-view hidden" id="boardView" aria-labelledby="boardTitle">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">IBK&#44221;&#51228;&#50672;&#44396;&#49548; &#51473;&#44592;&#49328;&#50629;&#50672;&#44396;&#49892;</p>
+          <h1 id="boardTitle">&#51473;&#49548;&#44592;&#50629;&#54016;</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="loginBadge" class="login-badge"></span>
+          <button class="primary-button" id="newPostButton" type="button" aria-expanded="false" aria-controls="postPanel">&#49352;&#47196; &#47564;&#46308;&#44592;</button>
+          <button class="ghost-button" id="logoutButton" type="button">&#47196;&#44536;&#50500;&#50883;</button>
+        </div>
+      </header>
+
+      <div class="workspace-layout">
+        <aside class="side-menu" aria-label="workspace menu">
+          <div class="menu-group">
+            <div class="menu-title">1. &#54924;&#51032;&#47197;</div>
+            <button class="menu-item active" id="menuListButton" type="button">&#8226; &#47785;&#47197;</button>
+            <button class="menu-item" id="menuCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">2. &#51452;&#44036;&#51060;&#49800; &#52968;&#53584;&#52768;</div>
+            <button class="menu-item" id="menuIssueButton" type="button">&#8226; &#47785;&#47197;</button>
+          </div>
+        </aside>
+
+        <div class="workspace-main">
+      <div class="view-heading" id="viewHeading">&#54924;&#51032;&#47197; - &#47785;&#47197;</div>
+      <section class="controls" aria-label="board filters">
+        <div class="search-field">
+          <label for="searchInput">&#44160;&#49353;</label>
+          <input id="searchInput" type="search" placeholder="&#51228;&#47785;, &#51452;&#51228;, &#45236;&#50857;, &#51089;&#49457;&#51088;, &#52280;&#50668;&#51088; &#44160;&#49353;">
+        </div>
+        <div>
+          <label for="categoryOne">&#44396;&#48516;1</label>
+          <select id="categoryOne">
+            <option value="">&#51204;&#52404;</option>
+          </select>
+        </div>
+        <div>
+          <label for="categoryTwo">&#44396;&#48516;2</label>
+          <select id="categoryTwo">
+            <option value="">&#51204;&#52404;</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="post-panel hidden" id="postPanel" aria-labelledby="postFormTitle">
+        <h2 id="postFormTitle">&#44172;&#49884;&#44544; &#51089;&#49457;</h2>
+        <form class="post-form" id="postForm">
+          <div>
+            <label for="postDate">&#45216;&#51676;</label>
+            <input id="postDate" name="date" type="date" required>
+          </div>
+          <div>
+            <label for="postPeriod">&#49884;&#44036;</label>
+            <div class="time-controls">
+              <select id="postPeriod" name="period" required>
+                <option value="AM">&#50724;&#51204;</option>
+                <option value="PM">&#50724;&#54980;</option>
+              </select>
+              <select id="postHour" name="hour" required>
+                <option value="1">1&#49884;</option>
+                <option value="2">2&#49884;</option>
+                <option value="3">3&#49884;</option>
+                <option value="4">4&#49884;</option>
+                <option value="5">5&#49884;</option>
+                <option value="6">6&#49884;</option>
+                <option value="7">7&#49884;</option>
+                <option value="8">8&#49884;</option>
+                <option value="9">9&#49884;</option>
+                <option value="10">10&#49884;</option>
+                <option value="11">11&#49884;</option>
+                <option value="12">12&#49884;</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="postAuthor">&#51089;&#49457;&#51088;</label>
+            <input id="postAuthor" name="authorName" type="text" readonly>
+          </div>
+          <div>
+            <label for="postTitle">&#51228;&#47785;</label>
+            <input id="postTitle" name="title" type="text" required>
+          </div>
+          <div>
+            <label for="postTypeOne">&#44396;&#48516;1</label>
+            <select id="postTypeOne" name="type1" required></select>
+          </div>
+          <div>
+            <label for="postTypeTwo">&#44396;&#48516;2</label>
+            <select id="postTypeTwo" name="type2" required></select>
+          </div>
+          <fieldset class="wide-field participants-field">
+            <legend>&#52280;&#50668;&#51088;</legend>
+            <div id="participantChoices" class="participant-choices"></div>
+          </fieldset>
+          <div class="wide-field">
+            <label for="postTopic">&#51452;&#51228;</label>
+            <textarea id="postTopic" name="topic" rows="3" required></textarea>
+          </div>
+          <div class="wide-field">
+            <label for="postContent">&#45236;&#50857;</label>
+            <div class="content-style-controls" aria-label="content style">
+              <div>
+                <label for="contentFontSize">&#44544;&#51088;&#53356;&#44592;</label>
+                <select id="contentFontSize" name="contentFontSize">
+                  <option value="14">14px</option>
+                  <option value="16" selected>16px</option>
+                  <option value="18">18px</option>
+                  <option value="20">20px</option>
+                  <option value="24">24px</option>
+                </select>
+              </div>
+              <div>
+                <span class="tool-label">&#48380;&#46300;</span>
+                <button class="format-button" id="boldButton" type="button" title="Bold">B</button>
+              </div>
+              <div>
+                <label for="contentColor">&#44544;&#51088;&#49353;</label>
+                <input id="contentColor" name="contentColor" type="color" value="#263442">
+              </div>
+            </div>
+            <textarea id="postContent" name="content" rows="5" required></textarea>
+          </div>
+          <div class="form-actions wide-field">
+            <p class="form-message" id="formMessage" role="status"></p>
+            <button class="secondary-button" id="cancelPostButton" type="button">&#52712;&#49548;</button>
+            <button type="submit">&#46321;&#47197;</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="board-list" id="boardList">
+        <section class="table-wrap" aria-label="board list">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">&#45216;&#51676;</th>
+              <th scope="col">&#51228;&#47785;</th>
+              <th scope="col">&#51452;&#51228;</th>
+              <th scope="col">&#44396;&#48516;</th>
+              <th scope="col">&#51089;&#49457;&#51088;</th>
+            </tr>
+          </thead>
+          <tbody id="boardRows"></tbody>
+        </table>
+        <p class="empty-state hidden" id="emptyState">&#51312;&#44148;&#50640; &#47582;&#45716; &#50629;&#47924; &#54788;&#54889;&#51060; &#50630;&#49845;&#45768;&#45796;.</p>
+        </section>
+      </section>
+
+      <section class="calendar-panel hidden" id="calendarPanel" aria-label="calendar view">
+        <div class="calendar-header">
+          <button class="ghost-button" id="prevMonthButton" type="button">&#8249;</button>
+          <h2 id="calendarTitle"></h2>
+          <button class="ghost-button" id="nextMonthButton" type="button">&#8250;</button>
+        </div>
+        <div class="calendar-grid calendar-weekdays" aria-hidden="true">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+
+      <section class="issue-panel hidden" id="issuePanel" aria-label="weekly issue content board">
+        <section class="issue-controls" aria-label="weekly issue filters">
+          <div class="search-field">
+            <label for="issueSearchInput">&#44160;&#49353;</label>
+            <input id="issueSearchInput" type="search" placeholder="&#51452;&#51228;, &#44288;&#47144; &#48512;&#52376; &#48143; &#44592;&#44288; &#44160;&#49353;">
+          </div>
+          <div>
+            <label for="issueCategoryFilter">&#44396;&#48516;</label>
+            <select id="issueCategoryFilter">
+              <option value="">&#51204;&#52404;</option>
+            </select>
+          </div>
+        </section>
+        <div class="issue-actions">
+          <button class="primary-button" id="addIssueRowButton" type="button">&#54665; &#52628;&#44032;</button>
+        </div>
+        <section class="issue-table-wrap" aria-label="weekly issue list">
+          <table class="issue-table">
+            <thead>
+              <tr>
+                <th scope="col">&#50900;</th>
+                <th scope="col">&#51452;&#52264;</th>
+                <th scope="col">&#44396;&#48516;</th>
+                <th scope="col">&#51452;&#51228;</th>
+                <th scope="col">&#44288;&#47144; &#48512;&#52376; &#48143; &#44592;&#44288;</th>
+              </tr>
+            </thead>
+            <tbody id="issueRows"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="detail-panel hidden" id="detailPanel" aria-labelledby="detailTitle">
+        <div class="detail-top">
+          <button class="primary-button hidden" id="editPostButton" type="button">&#49688;&#51221;</button>
+          <button class="ghost-button" id="backToListButton" type="button">&#47785;&#47197;&#48372;&#44592;</button>
+        </div>
+        <article class="detail-card">
+          <p class="detail-date" id="detailDate"></p>
+          <h2 id="detailTitle"></h2>
+          <dl class="detail-meta">
+            <div>
+              <dt>&#51452;&#51228;</dt>
+              <dd id="detailTopic"></dd>
+            </div>
+            <div>
+              <dt>&#44396;&#48516;1</dt>
+              <dd id="detailTypeOne"></dd>
+            </div>
+            <div>
+              <dt>&#44396;&#48516;2</dt>
+              <dd id="detailTypeTwo"></dd>
+            </div>
+            <div>
+              <dt>&#51089;&#49457;&#51088;</dt>
+              <dd id="detailAuthor"></dd>
+            </div>
+            <div>
+              <dt>&#52280;&#50668;&#51088;</dt>
+              <dd id="detailParticipants"></dd>
+            </div>
+          </dl>
+          <section class="detail-content" aria-label="post content">
+            <h3>&#45236;&#50857;</h3>
+            <div id="detailContent" class="markdown-body"></div>
+          </section>
+        </article>
+      </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
