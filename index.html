@@ -15,11 +15,8 @@
         <p class="login-copy">&#54016;&#50896; &#47196;&#44536;&#51064; &#54980; &#45216;&#51676;&#48324; &#54924;&#51032;&#50752; &#50629;&#47924; &#51652;&#54665; &#49345;&#54889;&#51012; &#54869;&#51064;&#54616;&#49464;&#50836;.</p>
 
         <form class="login-form" id="loginForm">
-          <label for="userId">ID</label>
+          <label for="userId">&#49324;&#48264;</label>
           <input id="userId" name="userId" type="text" autocomplete="username" placeholder="43222" required>
-
-          <label for="password">&#48708;&#48128;&#48264;&#54840;</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="&#51060;&#48120; &#46321;&#47197;&#46108; &#51076;&#49884; &#48708;&#48128;&#48264;&#54840;" required>
 
           <p class="login-error" id="loginError" role="alert"></p>
           <button type="submit">&#47196;&#44536;&#51064;</button>
@@ -36,38 +33,206 @@
         <div class="topbar-actions">
           <span id="loginBadge" class="login-badge"></span>
           <button class="primary-button" id="newPostButton" type="button" aria-expanded="false" aria-controls="postPanel">&#49352;&#47196; &#47564;&#46308;&#44592;</button>
+          <button class="danger-button hidden" id="deleteSelectedButton" type="button">&#49325;&#51228;</button>
           <button class="ghost-button" id="logoutButton" type="button">&#47196;&#44536;&#50500;&#50883;</button>
+          <button class="ghost-button hidden" id="adminPageButton" type="button">&#44288;&#47532;&#51088; &#54168;&#51060;&#51648;</button>
         </div>
       </header>
 
       <div class="workspace-layout">
         <aside class="side-menu" aria-label="workspace menu">
           <div class="menu-group">
-            <div class="menu-title">1. &#54924;&#51032;&#47197;</div>
-            <button class="menu-item active" id="menuListButton" type="button">&#8226; &#47785;&#47197;</button>
+            <div class="menu-title">1. &#50629;&#47924; &#54788;&#54889;</div>
+            <button class="menu-item active" id="menuWorkDashboardButton" type="button">&#8226; &#45824;&#49772;&#48372;&#46300;</button>
+            <button class="menu-item" id="menuWorkListButton" type="button">&#8226; &#47785;&#47197;</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">2. &#54924;&#51032;&#47197;</div>
+            <button class="menu-item" id="menuListButton" type="button">&#8226; &#47785;&#47197;</button>
             <button class="menu-item" id="menuCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <div class="menu-title">2. &#51452;&#44036;&#51060;&#49800; &#52968;&#53584;&#52768;</div>
-            <button class="menu-item" id="menuIssueButton" type="button">&#8226; &#47785;&#47197;</button>
+            <div class="menu-title">3. &#51068;&#51221;</div>
+            <button class="menu-item" id="menuScheduleListButton" type="button">&#8226; &#47785;&#47197;</button>
+            <button class="menu-item" id="menuScheduleCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
         </aside>
 
         <div class="workspace-main">
-      <div class="view-heading" id="viewHeading">&#54924;&#51032;&#47197; - &#47785;&#47197;</div>
-      <section class="controls" aria-label="board filters">
+      <div class="view-heading" id="viewHeading">&#50629;&#47924; &#54788;&#54889; - &#45824;&#49772;&#48372;&#46300;</div>
+      <section class="work-filters hidden" id="workFilters" aria-label="work status filters">
+        <div>
+          <label for="workFilterStartDate">&#49884;&#51089;&#51068;</label>
+          <input id="workFilterStartDate" type="date">
+        </div>
+        <div>
+          <label for="workFilterEndDate">&#51333;&#47308;&#51068;</label>
+          <input id="workFilterEndDate" type="date">
+        </div>
+        <div>
+          <label for="workFilterAssignee">&#45812;&#45817;&#51088;</label>
+          <select id="workFilterAssignee">
+            <option value="">&#51204;&#52404;</option>
+          </select>
+        </div>
+        <div>
+          <label for="workFilterStatus">&#49345;&#53468;</label>
+          <select id="workFilterStatus">
+            <option value="">&#51204;&#52404;</option>
+          </select>
+        </div>
+        <div>
+          <label for="workFilterCategory">&#44396;&#48516;</label>
+          <select id="workFilterCategory">
+            <option value="">&#51204;&#52404;</option>
+          </select>
+        </div>
+      </section>
+      <section class="work-dashboard" id="workDashboardPanel" aria-label="work status dashboard"></section>
+
+      <section class="work-form-panel hidden" id="workFormPanel" aria-labelledby="workFormTitle">
+        <h2 id="workFormTitle">&#50629;&#47924; &#54788;&#54889; &#51089;&#49457;</h2>
+        <form class="work-form" id="workForm">
+          <div class="work-row-one">
+            <label for="workStartDate">&#49884;&#51089;&#51068;</label>
+            <input id="workStartDate" name="startDate" type="date" required>
+          </div>
+          <div class="work-row-one">
+            <label for="workEndDate">&#51333;&#47308;&#51068;</label>
+            <div class="end-date-control">
+              <input id="workEndDate" name="endDate" type="date">
+              <label class="inline-check">
+                <input id="workNoEndDate" name="noEndDate" type="checkbox">
+                <span>&#50630;&#51020;</span>
+              </label>
+            </div>
+          </div>
+          <div class="work-row-one">
+            <label for="workStatus">&#49345;&#53468;</label>
+            <select id="workStatus" name="status" required></select>
+          </div>
+          <div class="work-row-one">
+            <label for="workCategory">&#44396;&#48516;</label>
+            <select id="workCategory" name="category" required></select>
+          </div>
+          <div class="wide-field">
+            <label for="workTitle">&#51228;&#47785;</label>
+            <input id="workTitle" name="title" type="text" required>
+          </div>
+          <fieldset class="wide-field participants-field">
+            <legend>&#45812;&#45817;&#51088;</legend>
+            <div id="workAssigneeChoices" class="participant-choices"></div>
+          </fieldset>
+          <div class="form-actions wide-field">
+            <p class="form-message" id="workFormMessage" role="status"></p>
+            <button class="secondary-button" id="cancelWorkButton" type="button">&#52712;&#49548;</button>
+            <button type="submit">&#46321;&#47197;</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="work-list hidden" id="workListPanel">
+        <section class="table-wrap" aria-label="work status list">
+          <table id="workTable">
+            <thead>
+              <tr>
+                <th class="work-delete-select-header hidden" scope="col">
+                  <input id="selectAllWorkItems" type="checkbox" aria-label="&#50629;&#47924; &#54788;&#54889; &#51204;&#52404; &#49440;&#53469;">
+                </th>
+                <th scope="col">&#49884;&#51089;&#51068;</th>
+                <th scope="col">&#51333;&#47308;&#51068;</th>
+                <th scope="col">&#51228;&#47785;</th>
+                <th scope="col">&#45812;&#45817;&#51088;</th>
+                <th scope="col">&#49345;&#53468;</th>
+                <th scope="col">&#44396;&#48516;</th>
+              </tr>
+            </thead>
+            <tbody id="workRows"></tbody>
+          </table>
+          <p class="empty-state hidden" id="workEmptyState">&#46321;&#47197;&#46108; &#50629;&#47924; &#54788;&#54889;&#51060; &#50630;&#49845;&#45768;&#45796;.</p>
+        </section>
+      </section>
+
+      <section class="schedule-form-panel hidden" id="scheduleFormPanel" aria-labelledby="scheduleFormTitle">
+        <h2 id="scheduleFormTitle">&#51068;&#51221; &#51089;&#49457;</h2>
+        <form class="schedule-form" id="scheduleForm">
+          <div>
+            <label for="scheduleStartDate">&#49884;&#51089;&#51068;</label>
+            <input id="scheduleStartDate" name="startDate" type="date" required>
+          </div>
+          <div>
+            <label for="scheduleEndDate">&#51333;&#47308;&#51068;</label>
+            <input id="scheduleEndDate" name="endDate" type="date" required>
+          </div>
+          <div>
+            <label for="scheduleCategory">&#44396;&#48516;</label>
+            <select id="scheduleCategory" name="category" required></select>
+          </div>
+          <div class="wide-field">
+            <label for="scheduleDescription">&#49444;&#47749;</label>
+            <input id="scheduleDescription" name="description" type="text" required>
+          </div>
+          <div class="form-actions wide-field">
+            <p class="form-message" id="scheduleFormMessage" role="status"></p>
+            <button class="secondary-button" id="cancelScheduleButton" type="button">&#52712;&#49548;</button>
+            <button type="submit">&#46321;&#47197;</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="schedule-list hidden" id="scheduleListPanel">
+        <section class="table-wrap" aria-label="schedule list">
+          <table id="scheduleTable">
+            <thead>
+              <tr>
+                <th class="schedule-delete-select-header hidden" scope="col">
+                  <input id="selectAllSchedules" type="checkbox" aria-label="&#51068;&#51221; &#51204;&#52404; &#49440;&#53469;">
+                </th>
+                <th scope="col">&#45216;&#51676;</th>
+                <th scope="col">&#44396;&#48516;</th>
+                <th scope="col">&#49444;&#47749;</th>
+                <th scope="col">&#44288;&#47532;</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleRows"></tbody>
+          </table>
+          <p class="empty-state hidden" id="scheduleEmptyState">&#46321;&#47197;&#46108; &#51068;&#51221;&#51060; &#50630;&#49845;&#45768;&#45796;.</p>
+        </section>
+      </section>
+
+      <section class="schedule-calendar-panel calendar-panel hidden" id="scheduleCalendarPanel" aria-label="schedule calendar view">
+        <div class="calendar-header">
+          <button class="ghost-button" id="prevScheduleMonthButton" type="button">&#8249;</button>
+          <h2 id="scheduleCalendarTitle"></h2>
+          <button class="ghost-button" id="nextScheduleMonthButton" type="button">&#8250;</button>
+        </div>
+        <div class="calendar-grid calendar-weekdays" aria-hidden="true">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+        <div class="calendar-grid" id="scheduleCalendarGrid"></div>
+      </section>
+
+      <section class="controls hidden" aria-label="board filters">
         <div class="search-field">
           <label for="searchInput">&#44160;&#49353;</label>
           <input id="searchInput" type="search" placeholder="&#51228;&#47785;, &#51452;&#51228;, &#45236;&#50857;, &#51089;&#49457;&#51088;, &#52280;&#50668;&#51088; &#44160;&#49353;">
         </div>
         <div>
-          <label for="categoryOne">&#44396;&#48516;1</label>
-          <select id="categoryOne">
-            <option value="">&#51204;&#52404;</option>
-          </select>
+          <label for="startDateFilter">&#49884;&#51089;&#51068;</label>
+          <input id="startDateFilter" type="date">
         </div>
         <div>
-          <label for="categoryTwo">&#44396;&#48516;2</label>
+          <label for="endDateFilter">&#51333;&#47308;&#51068;</label>
+          <input id="endDateFilter" type="date">
+        </div>
+        <div>
+          <label for="categoryTwo">&#44396;&#48516;</label>
           <select id="categoryTwo">
             <option value="">&#51204;&#52404;</option>
           </select>
@@ -113,11 +278,7 @@
             <input id="postTitle" name="title" type="text" required>
           </div>
           <div>
-            <label for="postTypeOne">&#44396;&#48516;1</label>
-            <select id="postTypeOne" name="type1" required></select>
-          </div>
-          <div>
-            <label for="postTypeTwo">&#44396;&#48516;2</label>
+            <label for="postTypeTwo">&#44396;&#48516;</label>
             <select id="postTypeTwo" name="type2" required></select>
           </div>
           <fieldset class="wide-field participants-field">
@@ -160,22 +321,26 @@
         </form>
       </section>
 
-      <section class="board-list" id="boardList">
-        <section class="table-wrap" aria-label="board list">
-        <table>
+      <section class="board-list hidden" id="boardList">
+        <section class="table-wrap" id="tableWrap" aria-label="board list">
+        <table id="boardTable">
           <thead>
             <tr>
-              <th scope="col">&#45216;&#51676;</th>
-              <th scope="col">&#51228;&#47785;</th>
-              <th scope="col">&#51452;&#51228;</th>
-              <th scope="col">&#44396;&#48516;</th>
-              <th scope="col">&#51089;&#49457;&#51088;</th>
+              <th class="delete-select-header hidden" scope="col">
+                <input id="selectAllPosts" type="checkbox" aria-label="&#51204;&#52404; &#49440;&#53469;">
+              </th>
+              <th class="date-header" scope="col">&#45216;&#51676;</th>
+              <th class="title-header" scope="col">&#51228;&#47785;</th>
+              <th class="topic-header" scope="col">&#51452;&#51228;</th>
+              <th class="type-header" scope="col">&#44396;&#48516;</th>
+              <th class="author-header" scope="col">&#51089;&#49457;&#51088;</th>
             </tr>
           </thead>
           <tbody id="boardRows"></tbody>
         </table>
         <p class="empty-state hidden" id="emptyState">&#51312;&#44148;&#50640; &#47582;&#45716; &#50629;&#47924; &#54788;&#54889;&#51060; &#50630;&#49845;&#45768;&#45796;.</p>
         </section>
+        <nav class="pagination hidden" id="pagination" aria-label="&#54924;&#51032;&#47197; &#54168;&#51060;&#51648;"></nav>
       </section>
 
       <section class="calendar-panel hidden" id="calendarPanel" aria-label="calendar view">
@@ -196,38 +361,6 @@
         <div class="calendar-grid" id="calendarGrid"></div>
       </section>
 
-      <section class="issue-panel hidden" id="issuePanel" aria-label="weekly issue content board">
-        <section class="issue-controls" aria-label="weekly issue filters">
-          <div class="search-field">
-            <label for="issueSearchInput">&#44160;&#49353;</label>
-            <input id="issueSearchInput" type="search" placeholder="&#51452;&#51228;, &#44288;&#47144; &#48512;&#52376; &#48143; &#44592;&#44288; &#44160;&#49353;">
-          </div>
-          <div>
-            <label for="issueCategoryFilter">&#44396;&#48516;</label>
-            <select id="issueCategoryFilter">
-              <option value="">&#51204;&#52404;</option>
-            </select>
-          </div>
-        </section>
-        <div class="issue-actions">
-          <button class="primary-button" id="addIssueRowButton" type="button">&#54665; &#52628;&#44032;</button>
-        </div>
-        <section class="issue-table-wrap" aria-label="weekly issue list">
-          <table class="issue-table">
-            <thead>
-              <tr>
-                <th scope="col">&#50900;</th>
-                <th scope="col">&#51452;&#52264;</th>
-                <th scope="col">&#44396;&#48516;</th>
-                <th scope="col">&#51452;&#51228;</th>
-                <th scope="col">&#44288;&#47144; &#48512;&#52376; &#48143; &#44592;&#44288;</th>
-              </tr>
-            </thead>
-            <tbody id="issueRows"></tbody>
-          </table>
-        </section>
-      </section>
-
       <section class="detail-panel hidden" id="detailPanel" aria-labelledby="detailTitle">
         <div class="detail-top">
           <button class="primary-button hidden" id="editPostButton" type="button">&#49688;&#51221;</button>
@@ -242,11 +375,7 @@
               <dd id="detailTopic"></dd>
             </div>
             <div>
-              <dt>&#44396;&#48516;1</dt>
-              <dd id="detailTypeOne"></dd>
-            </div>
-            <div>
-              <dt>&#44396;&#48516;2</dt>
+              <dt>&#44396;&#48516;</dt>
               <dd id="detailTypeTwo"></dd>
             </div>
             <div>
@@ -264,11 +393,47 @@
           </section>
         </article>
       </section>
+
+      <section class="admin-panel hidden" id="adminPanel" aria-label="admin page">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2>&#44288;&#47532;&#51088; &#44428;&#54620; &#49444;&#51221;</h2>
+            <button class="primary-button" id="saveAdminRolesButton" type="button">&#51200;&#51109;</button>
+          </div>
+          <p class="admin-help">&#54016;&#50896;&#48324; &#44288;&#47532;&#51088; &#44428;&#54620;&#51012; &#49444;&#51221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;. &#48376;&#51064;&#51032; &#44428;&#54620;&#46020; &#48320;&#44221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;.</p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th scope="col">&#49324;&#48264;</th>
+                  <th scope="col">&#51060;&#47492;</th>
+                  <th scope="col">&#44288;&#47532;&#51088; &#44428;&#54620;</th>
+                </tr>
+              </thead>
+              <tbody id="adminRows"></tbody>
+            </table>
+          </div>
+          <p class="form-message" id="adminMessage"></p>
+        </div>
+      </section>
+      <div class="confirm-modal hidden" id="deleteConfirmModal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+        <div class="confirm-card">
+          <h2 id="deleteConfirmTitle">&#49325;&#51228;&#54616;&#49884;&#44192;&#49845;&#45768;&#44620;?</h2>
+          <p>&#49440;&#53469;&#54620; &#54924;&#51032;&#47197;&#51008; &#49325;&#51228; &#54980; &#46104;&#46028;&#47540; &#49688; &#50630;&#49845;&#45768;&#45796;.</p>
+          <div class="confirm-actions">
+            <button class="danger-button" id="confirmDeleteYes" type="button">Yes</button>
+            <button class="ghost-button" id="confirmDeleteNo" type="button">No</button>
+          </div>
+        </div>
+      </div>
         </div>
       </div>
     </section>
   </main>
 
-  <script type="module" src="script.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

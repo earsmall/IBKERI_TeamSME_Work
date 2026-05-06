@@ -1,13 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import {
-  addDoc,
-  collection,
-  doc,
-  getFirestore,
-  onSnapshot,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyC2IAgurX44nkiTkSLMRjVEe6hCPLarQGA",
   authDomain: "ibkeri-team-sme.firebaseapp.com",
@@ -17,20 +7,42 @@ const firebaseConfig = {
   appId: "1:528354283514:web:61517916ea841af4609e43"
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-const meetingCollection = collection(db, "meetingMinutes");
-const issueCollection = collection(db, "weeklyIssues");
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const meetingCollection = db.collection("meetingMinutes");
+const workCollection = db.collection("workStatus");
+const scheduleCollection = db.collection("schedules");
+const adminRolesRef = db.collection("settings").doc("adminRoles");
+
+function doc(database, collectionName, id) {
+  return database.collection(collectionName).doc(id);
+}
+
+function setDoc(documentRef, data, options) {
+  return documentRef.set(data, options);
+}
+
+function addDoc(collectionRef, data) {
+  return collectionRef.add(data);
+}
+
+function deleteDoc(documentRef) {
+  return documentRef.delete();
+}
+
+function onSnapshot(reference, onNext, onError) {
+  return reference.onSnapshot(onNext, onError);
+}
 
 const ko = {
   admin: "\uad00\ub9ac\uc790",
   choi: "\ucd5c\uc815\ud6c8",
   loggedIn: "\ub85c\uadf8\uc778 \uc911",
-  badLogin: "ID \ub610\ub294 \ube44\ubc00\ubc88\ud638\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.",
+  badLogin: "\uc0ac\ubc88\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.",
+  authFailed: "\uc778\uc99d \uc5f0\uacb0\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.",
   saved: "\uac8c\uc2dc\uae00\uc774 \ub4f1\ub85d\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
   participantRequired: "\ucc38\uc5ec\uc790\ub97c 1\uba85 \uc774\uc0c1 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.",
-  regular: "\uc815\uae30",
-  occasional: "\uc218\uc2dc",
   allLab: "\uc5f0\uad6c\uc18c \uc804\uccb4",
   underHead: "\uc18c\uc7a5 \uc774\ud558",
   underDirector: "\uc2e4\uc7a5 \uc774\ud558",
@@ -38,19 +50,42 @@ const ko = {
 };
 
 const VALID_USERS = [
-  { id: "admin", password: "admin1234", name: ko.admin, role: "admin" },
-  { id: "43222", password: "43222", name: ko.choi, role: "admin" },
-  { id: "24810", password: "24810", name: "\uc774\uc6b0\uc885", role: "member" },
-  { id: "25360", password: "25360", name: "\ub0a8\uad81\uc124", role: "member" },
-  { id: "44975", password: "44975", name: "\uc624\uc815\ud0dd", role: "member" },
-  { id: "43343", password: "43343", name: "\uae40\ub0a8\ud76c", role: "member" },
-  { id: "42128", password: "42128", name: "\uae40\uc218\uc601", role: "member" }
+  { id: "admin", name: ko.admin, role: "admin" },
+  { id: "43222", name: ko.choi, role: "admin" },
+  { id: "24810", name: "\uc774\uc6b0\uc885", role: "member" },
+  { id: "25360", name: "\ub0a8\uad81\uc124", role: "member" },
+  { id: "44975", name: "\uc624\uc815\ud0dd", role: "member" },
+  { id: "43343", name: "\uae40\ub0a8\ud76c", role: "member" },
+  { id: "42128", name: "\uae40\uc218\uc601", role: "member" }
 ];
 
-const TYPE_ONE_OPTIONS = [ko.regular, ko.occasional];
-const TYPE_TWO_OPTIONS = [ko.allLab, ko.underHead, ko.underDirector, ko.underTeamLead];
+const TYPE_OPTIONS = [ko.underHead, ko.underDirector, ko.underTeamLead];
+const WORK_CATEGORY_OPTIONS = [
+  "\uc5f0\uad6c\ubcf4\uace0\uc11c",
+  "\uc815\uae30\ubcf4\uace0\uc11c",
+  "\ube0c\ub9ac\ud504",
+  "\uc804\ub9dd",
+  "\uae30\ud0c0"
+];
+const WORK_STATUS_OPTIONS = [
+  "\uc9c4\ud589",
+  "\uc77c\uc2dc\uc911\uc9c0",
+  "\ub300\uae30",
+  "\ubcf4\ub958",
+  "\uace0\ub824\uc911",
+  "\uc644\ub8cc"
+];
+const WORK_DASHBOARD_STATUS_ORDER = WORK_STATUS_OPTIONS;
+const SCHEDULE_CATEGORY_OPTIONS = [
+  "\ud589\uc0ac",
+  "\ud734\uac00",
+  "\ud68c\uc758",
+  "\uae30\ud0c0"
+];
 
 let boardItems = [];
+let workItems = [];
+let scheduleItems = [];
 
 const loginView = document.querySelector("#loginView");
 const boardView = document.querySelector("#boardView");
@@ -58,30 +93,82 @@ const loginForm = document.querySelector("#loginForm");
 const loginError = document.querySelector("#loginError");
 const loginBadge = document.querySelector("#loginBadge");
 const logoutButton = document.querySelector("#logoutButton");
+const adminPageButton = document.querySelector("#adminPageButton");
 const newPostButton = document.querySelector("#newPostButton");
+const deleteSelectedButton = document.querySelector("#deleteSelectedButton");
 const cancelPostButton = document.querySelector("#cancelPostButton");
 const backToListButton = document.querySelector("#backToListButton");
 const editPostButton = document.querySelector("#editPostButton");
+const menuWorkDashboardButton = document.querySelector("#menuWorkDashboardButton");
+const menuWorkListButton = document.querySelector("#menuWorkListButton");
 const menuListButton = document.querySelector("#menuListButton");
 const menuCalendarButton = document.querySelector("#menuCalendarButton");
-const menuIssueButton = document.querySelector("#menuIssueButton");
+const menuScheduleListButton = document.querySelector("#menuScheduleListButton");
+const menuScheduleCalendarButton = document.querySelector("#menuScheduleCalendarButton");
 const boldButton = document.querySelector("#boldButton");
 const prevMonthButton = document.querySelector("#prevMonthButton");
 const nextMonthButton = document.querySelector("#nextMonthButton");
 const boardRows = document.querySelector("#boardRows");
 const boardList = document.querySelector("#boardList");
+const tableWrap = document.querySelector("#tableWrap");
+const deleteSelectHeader = document.querySelector(".delete-select-header");
+const selectAllPosts = document.querySelector("#selectAllPosts");
+const workDeleteSelectHeader = document.querySelector(".work-delete-select-header");
+const selectAllWorkItems = document.querySelector("#selectAllWorkItems");
+const pagination = document.querySelector("#pagination");
+const workDashboardPanel = document.querySelector("#workDashboardPanel");
+const workListPanel = document.querySelector("#workListPanel");
+const workFormPanel = document.querySelector("#workFormPanel");
+const workForm = document.querySelector("#workForm");
+const workFormTitle = document.querySelector("#workFormTitle");
+const workStartDate = document.querySelector("#workStartDate");
+const workEndDate = document.querySelector("#workEndDate");
+const workNoEndDate = document.querySelector("#workNoEndDate");
+const workTitle = document.querySelector("#workTitle");
+const workAssigneeChoices = document.querySelector("#workAssigneeChoices");
+const workStatus = document.querySelector("#workStatus");
+const workCategory = document.querySelector("#workCategory");
+const workRows = document.querySelector("#workRows");
+const workEmptyState = document.querySelector("#workEmptyState");
+const workFormMessage = document.querySelector("#workFormMessage");
+const cancelWorkButton = document.querySelector("#cancelWorkButton");
+const workFilters = document.querySelector("#workFilters");
+const workFilterStartDate = document.querySelector("#workFilterStartDate");
+const workFilterEndDate = document.querySelector("#workFilterEndDate");
+const workFilterAssignee = document.querySelector("#workFilterAssignee");
+const workFilterStatus = document.querySelector("#workFilterStatus");
+const workFilterCategory = document.querySelector("#workFilterCategory");
+const scheduleFormPanel = document.querySelector("#scheduleFormPanel");
+const scheduleForm = document.querySelector("#scheduleForm");
+const scheduleFormTitle = document.querySelector("#scheduleFormTitle");
+const scheduleStartDate = document.querySelector("#scheduleStartDate");
+const scheduleEndDate = document.querySelector("#scheduleEndDate");
+const scheduleCategory = document.querySelector("#scheduleCategory");
+const scheduleDescription = document.querySelector("#scheduleDescription");
+const scheduleFormMessage = document.querySelector("#scheduleFormMessage");
+const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
+const scheduleListPanel = document.querySelector("#scheduleListPanel");
+const scheduleRows = document.querySelector("#scheduleRows");
+const scheduleEmptyState = document.querySelector("#scheduleEmptyState");
+const scheduleDeleteSelectHeader = document.querySelector(".schedule-delete-select-header");
+const selectAllSchedules = document.querySelector("#selectAllSchedules");
+const scheduleCalendarPanel = document.querySelector("#scheduleCalendarPanel");
+const scheduleCalendarGrid = document.querySelector("#scheduleCalendarGrid");
+const scheduleCalendarTitle = document.querySelector("#scheduleCalendarTitle");
+const prevScheduleMonthButton = document.querySelector("#prevScheduleMonthButton");
+const nextScheduleMonthButton = document.querySelector("#nextScheduleMonthButton");
 const calendarPanel = document.querySelector("#calendarPanel");
-const issuePanel = document.querySelector("#issuePanel");
-const issueRows = document.querySelector("#issueRows");
-const addIssueRowButton = document.querySelector("#addIssueRowButton");
-const issueSearchInput = document.querySelector("#issueSearchInput");
-const issueCategoryFilter = document.querySelector("#issueCategoryFilter");
+const adminPanel = document.querySelector("#adminPanel");
+const adminRows = document.querySelector("#adminRows");
+const saveAdminRolesButton = document.querySelector("#saveAdminRolesButton");
+const adminMessage = document.querySelector("#adminMessage");
 const calendarGrid = document.querySelector("#calendarGrid");
 const calendarTitle = document.querySelector("#calendarTitle");
 const viewHeading = document.querySelector("#viewHeading");
 const detailPanel = document.querySelector("#detailPanel");
 const searchInput = document.querySelector("#searchInput");
-const categoryOne = document.querySelector("#categoryOne");
+const startDateFilter = document.querySelector("#startDateFilter");
+const endDateFilter = document.querySelector("#endDateFilter");
 const categoryTwo = document.querySelector("#categoryTwo");
 const postForm = document.querySelector("#postForm");
 const postPanel = document.querySelector("#postPanel");
@@ -92,7 +179,6 @@ const postAuthor = document.querySelector("#postAuthor");
 const postContent = document.querySelector("#postContent");
 const contentFontSize = document.querySelector("#contentFontSize");
 const contentColor = document.querySelector("#contentColor");
-const postTypeOne = document.querySelector("#postTypeOne");
 const postTypeTwo = document.querySelector("#postTypeTwo");
 const participantChoices = document.querySelector("#participantChoices");
 const formMessage = document.querySelector("#formMessage");
@@ -100,48 +186,47 @@ const emptyState = document.querySelector("#emptyState");
 const detailDate = document.querySelector("#detailDate");
 const detailTitle = document.querySelector("#detailTitle");
 const detailTopic = document.querySelector("#detailTopic");
-const detailTypeOne = document.querySelector("#detailTypeOne");
 const detailTypeTwo = document.querySelector("#detailTypeTwo");
 const detailAuthor = document.querySelector("#detailAuthor");
 const detailParticipants = document.querySelector("#detailParticipants");
 const detailContent = document.querySelector("#detailContent");
+const deleteConfirmModal = document.querySelector("#deleteConfirmModal");
+const confirmDeleteYes = document.querySelector("#confirmDeleteYes");
+const confirmDeleteNo = document.querySelector("#confirmDeleteNo");
 
 let editingPostId = null;
+let editingWorkId = null;
+let editingScheduleId = null;
+let activeView = "work-dashboard";
 let currentCalendarDate = new Date();
-const ISSUE_CATEGORY_OPTIONS = [
-  "\uc785\ubc95",
-  "\uc870\uc0ac",
-  "\ud1b5\uacc4",
-  "\uc5b8\ub860\ubcf4\ub3c4",
-  "\uc815\ucc45",
-  "\ubd84\uc11d",
-  "\uae30\ud0c0"
-];
-let issueItems = [];
+let currentScheduleCalendarDate = new Date();
+let adminRoleMap = {};
+let firestoreUnsubscribers = [];
+let currentBoardPage = 1;
+const BOARD_PAGE_SIZE = 20;
 
 const tagColor = {
-  [ko.regular]: "brown",
-  [ko.occasional]: "brown",
-  [ko.allLab]: "gray",
   [ko.underHead]: "red",
   [ko.underDirector]: "blue",
   [ko.underTeamLead]: "green"
 };
 
-function createIssueItem() {
-  return {
-    month: "1",
-    week: "1",
-    category: ISSUE_CATEGORY_OPTIONS[0],
-    topic: "",
-    organization: ""
-  };
+function normalizeType(value) {
+  return value === ko.allLab ? ko.underHead : value || ko.underHead;
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (/^\d{2}-\d{2}-\d{2}$/.test(value)) {
+    return `20${value}`;
+  }
+  return value;
 }
 
 function normalizeMeetingPost(id, post) {
   const legacyDate = new Date(post.date);
   const hasLegacyDate = !Number.isNaN(legacyDate.getTime());
-  const dateValue = post.dateValue || (hasLegacyDate ? getLocalDateValue(legacyDate) : post.date || "");
+  const dateValue = normalizeDateValue(post.dateValue || (hasLegacyDate ? getLocalDateValue(legacyDate) : post.date || ""));
   const hour24 = hasLegacyDate ? legacyDate.getHours() : 9;
   const period = post.period || (hour24 >= 12 ? "PM" : "AM");
   const hour = post.hour || String(hour24 % 12 || 12);
@@ -158,58 +243,189 @@ function normalizeMeetingPost(id, post) {
     content: post.content || "",
     contentFontSize: post.contentFontSize || "16",
     contentColor: post.contentColor || "#263442",
+    type1: "",
+    type2: normalizeType(post.type2),
     participants: Array.isArray(post.participants) ? post.participants : []
   };
 }
 
-function normalizeIssueItem(id, item) {
+function getUserName(userId) {
+  if (userId === "team-sme") return "\uc911\uc18c\uae30\uc5c5\ud300";
+  return VALID_USERS.find((user) => user.id === userId)?.name || "";
+}
+
+function getAssigneeIds(item) {
+  if (Array.isArray(item.assigneeIds)) return item.assigneeIds;
+  return item.assigneeId ? [item.assigneeId] : [];
+}
+
+function getAssigneeNames(item) {
+  if (Array.isArray(item.assigneeNames)) return item.assigneeNames;
+  return getAssigneeIds(item).map(getUserName).filter(Boolean);
+}
+
+function normalizeWorkItem(id, item) {
+  const assigneeIds = getAssigneeIds(item);
+  const assigneeNames = Array.isArray(item.assigneeNames) ? item.assigneeNames : assigneeIds.map(getUserName).filter(Boolean);
   return {
     id,
-    month: item.month || "1",
-    week: item.week || "1",
-    category: item.category || ISSUE_CATEGORY_OPTIONS[0],
-    topic: item.topic || "",
-    organization: item.organization || ""
+    startDate: normalizeDateValue(item.startDate || ""),
+    endDate: normalizeDateValue(item.endDate || ""),
+    noEndDate: Boolean(item.noEndDate),
+    title: item.title || "",
+    assigneeId: assigneeIds[0] || "",
+    assigneeIds,
+    assigneeName: assigneeNames[0] || "",
+    assigneeNames,
+    status: item.status || WORK_STATUS_OPTIONS[0],
+    category: item.category || WORK_CATEGORY_OPTIONS[0],
+    createdAt: item.createdAt || ""
   };
 }
 
+function normalizeScheduleItem(id, item) {
+  const authorId = item.authorId || "";
+  return {
+    id,
+    startDate: normalizeDateValue(item.startDate || ""),
+    endDate: normalizeDateValue(item.endDate || item.startDate || ""),
+    category: item.category || SCHEDULE_CATEGORY_OPTIONS[0],
+    description: item.description || "",
+    authorId,
+    authorName: item.authorName || getUserName(authorId),
+    createdAt: item.createdAt || ""
+  };
+}
+
+async function ensureAnonymousAuth() {
+  if (auth.currentUser) return auth.currentUser;
+  const credential = await auth.signInAnonymously();
+  return credential.user;
+}
+
+function stopFirestoreListeners() {
+  firestoreUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  firestoreUnsubscribers = [];
+}
+
 function startFirestoreListeners() {
-  onSnapshot(meetingCollection, (snapshot) => {
+  if (firestoreUnsubscribers.length > 0) return;
+
+  firestoreUnsubscribers.push(onSnapshot(meetingCollection, (snapshot) => {
     boardItems = snapshot.docs.map((item) => normalizeMeetingPost(item.id, item.data()));
+    snapshot.docs.forEach((item) => {
+      if (item.data().type2 === ko.allLab) {
+        setDoc(doc(db, "meetingMinutes", item.id), { type1: "", type2: ko.underHead }, { merge: true });
+      }
+      if (/^\d{2}-\d{2}-\d{2}$/.test(item.data().dateValue || "")) {
+        setDoc(doc(db, "meetingMinutes", item.id), { dateValue: normalizeDateValue(item.data().dateValue) }, { merge: true });
+      }
+    });
     renderBoard();
     renderCalendar();
   }, (error) => {
     console.error("회의록을 불러오지 못했습니다.", error);
-  });
+  }));
 
-  onSnapshot(issueCollection, (snapshot) => {
-    issueItems = snapshot.docs.map((item) => normalizeIssueItem(item.id, item.data()));
-    renderIssueRows();
+  firestoreUnsubscribers.push(onSnapshot(adminRolesRef, (snapshot) => {
+    adminRoleMap = snapshot.exists ? snapshot.data().roles || {} : {};
+    syncCurrentUserRole();
+    renderAdminRows();
   }, (error) => {
-    console.error("주간이슈 컨텐츠를 불러오지 못했습니다.", error);
-  });
+    console.error("관리자 권한 정보를 불러오지 못했습니다.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(workCollection, (snapshot) => {
+    workItems = snapshot.docs.map((item) => normalizeWorkItem(item.id, item.data()));
+    renderWorkList();
+    renderWorkDashboard();
+  }, (error) => {
+    console.error("Failed to load work status.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(scheduleCollection, (snapshot) => {
+    scheduleItems = snapshot.docs.map((item) => normalizeScheduleItem(item.id, item.data()));
+    renderScheduleList();
+    renderScheduleCalendar();
+  }, (error) => {
+    console.error("Failed to load schedules.", error);
+  }));
 }
 
 function getCurrentUser() {
   return JSON.parse(sessionStorage.getItem("currentUser") || "null");
 }
 
+function getStoredUserRole(userId) {
+  if (userId === "admin") return "admin";
+  const baseUser = VALID_USERS.find((user) => user.id === userId);
+  return adminRoleMap[userId] || baseUser?.role || "member";
+}
+
+function isAdminUser(user) {
+  return Boolean(user && getStoredUserRole(user.id) === "admin");
+}
+
+function syncCurrentUserRole() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const syncedUser = { ...user, role: getStoredUserRole(user.id) };
+  sessionStorage.setItem("currentUser", JSON.stringify(syncedUser));
+  setView(syncedUser);
+  if (!isAdminUser(syncedUser) && !adminPanel.classList.contains("hidden")) {
+    showListView();
+  }
+}
+
 function setView(user) {
   if (user) {
+    const wasLoggedOut = boardView.classList.contains("hidden");
     loginView.classList.add("hidden");
     boardView.classList.remove("hidden");
-    const roleLabel = user.role === "admin" ? ko.admin : "\uc77c\ubc18";
+    const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
+    adminPageButton.classList.toggle("hidden", !isAdminUser(user));
+    deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
     postAuthor.value = user.name;
     setDefaultDate();
-    renderBoard();
+    if (wasLoggedOut) {
+      showWorkDashboardView();
+    }
     return;
   }
 
   loginView.classList.remove("hidden");
   boardView.classList.add("hidden");
   loginBadge.textContent = "";
+  adminPageButton.classList.add("hidden");
+  deleteSelectedButton.classList.add("hidden");
   postAuthor.value = "";
+}
+
+function showWorkDashboardView() {
+  activeView = "work-dashboard";
+  hideMainPanels();
+  viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ub300\uc26c\ubcf4\ub4dc";
+  viewHeading.classList.remove("hidden");
+  workFilters.classList.remove("hidden");
+  workDashboardPanel.classList.remove("hidden");
+  newPostButton.classList.add("hidden");
+  setMenuActive(menuWorkDashboardButton);
+  renderWorkDashboard();
+}
+
+function showWorkListView() {
+  const user = getCurrentUser();
+  activeView = "work-list";
+  hideMainPanels();
+  viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ubaa9\ub85d";
+  viewHeading.classList.remove("hidden");
+  workFilters.classList.remove("hidden");
+  workListPanel.classList.remove("hidden");
+  newPostButton.classList.remove("hidden");
+  deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
+  setMenuActive(menuWorkListButton);
+  renderWorkList();
 }
 
 function getLocalDateValue(date) {
@@ -254,7 +470,7 @@ function clearPostForm() {
 
 function fillPostForm(post) {
   editingPostId = post.id;
-  postDate.value = post.dateValue || post.date;
+  postDate.value = normalizeDateValue(post.dateValue || post.date);
   postPeriod.value = post.period || "AM";
   postHour.value = post.hour || "9";
   postAuthor.value = post.authorName || getCurrentUser()?.name || "";
@@ -263,12 +479,99 @@ function fillPostForm(post) {
   postContent.value = post.content || "";
   contentFontSize.value = post.contentFontSize || "16";
   contentColor.value = post.contentColor || "#263442";
-  postTypeOne.value = post.type1;
-  postTypeTwo.value = post.type2;
+  postTypeTwo.value = normalizeType(post.type2);
   document.querySelectorAll('input[name="participants"]').forEach((checkbox) => {
     checkbox.checked = post.participants.includes(checkbox.value);
   });
   applyContentInputStyle();
+}
+
+function setWorkFormOpen(isOpen) {
+  workFormPanel.classList.toggle("hidden", !isOpen);
+  newPostButton.setAttribute("aria-expanded", String(isOpen));
+  newPostButton.textContent = isOpen ? "\uc791\uc131 \ub2eb\uae30" : "\uc0c8\ub85c \ub9cc\ub4e4\uae30";
+  workFormTitle.textContent = editingWorkId ? "\uc5c5\ubb34 \ud604\ud669 \uc218\uc815" : "\uc5c5\ubb34 \ud604\ud669 \uc791\uc131";
+  if (isOpen) workTitle.focus();
+}
+
+function clearWorkForm() {
+  editingWorkId = null;
+  workForm.reset();
+  workStartDate.value = getLocalDateValue(new Date());
+  workEndDate.value = getLocalDateValue(new Date());
+  workNoEndDate.checked = false;
+  workEndDate.disabled = false;
+  document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+  workFormMessage.textContent = "";
+  workFormTitle.textContent = "\uc5c5\ubb34 \ud604\ud669 \uc791\uc131";
+}
+
+function fillWorkForm(item) {
+  editingWorkId = item.id;
+  workStartDate.value = normalizeDateValue(item.startDate);
+  workEndDate.value = normalizeDateValue(item.endDate);
+  workNoEndDate.checked = Boolean(item.noEndDate);
+  workEndDate.disabled = workNoEndDate.checked;
+  workTitle.value = item.title;
+  const assigneeIds = getAssigneeIds(item);
+  document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
+    checkbox.checked = assigneeIds.includes(checkbox.value);
+  });
+  workStatus.value = item.status;
+  workCategory.value = item.category;
+}
+
+function setScheduleFormOpen(isOpen) {
+  scheduleFormPanel.classList.toggle("hidden", !isOpen);
+  newPostButton.setAttribute("aria-expanded", String(isOpen));
+  newPostButton.textContent = isOpen ? "\uc791\uc131 \ub2eb\uae30" : "\uc0c8\ub85c \ub9cc\ub4e4\uae30";
+  scheduleFormTitle.textContent = editingScheduleId ? "\uc77c\uc815 \uc218\uc815" : "\uc77c\uc815 \uc791\uc131";
+  if (isOpen) scheduleDescription.focus();
+}
+
+function clearScheduleForm() {
+  editingScheduleId = null;
+  scheduleForm.reset();
+  const today = getLocalDateValue(new Date());
+  scheduleStartDate.value = today;
+  scheduleEndDate.value = today;
+  scheduleFormMessage.textContent = "";
+  scheduleFormTitle.textContent = "\uc77c\uc815 \uc791\uc131";
+}
+
+function fillScheduleForm(item) {
+  editingScheduleId = item.id;
+  scheduleStartDate.value = normalizeDateValue(item.startDate);
+  scheduleEndDate.value = normalizeDateValue(item.endDate || item.startDate);
+  scheduleCategory.value = item.category;
+  scheduleDescription.value = item.description;
+}
+
+function hideMainPanels() {
+  workDashboardPanel.classList.add("hidden");
+  workListPanel.classList.add("hidden");
+  workFormPanel.classList.add("hidden");
+  workFilters.classList.add("hidden");
+  scheduleFormPanel.classList.add("hidden");
+  scheduleListPanel.classList.add("hidden");
+  scheduleCalendarPanel.classList.add("hidden");
+  detailPanel.classList.add("hidden");
+  calendarPanel.classList.add("hidden");
+  adminPanel.classList.add("hidden");
+  boardList.classList.add("hidden");
+  searchInput.closest(".controls").classList.add("hidden");
+  postPanel.classList.add("hidden");
+  pagination.classList.add("hidden");
+  deleteSelectedButton.classList.add("hidden");
+  editPostButton.classList.add("hidden");
+}
+
+function setMenuActive(activeButton) {
+  [menuWorkDashboardButton, menuWorkListButton, menuListButton, menuCalendarButton, menuScheduleListButton, menuScheduleCalendarButton].forEach((button) => {
+    button.classList.toggle("active", button === activeButton);
+  });
 }
 
 function applyContentInputStyle() {
@@ -277,52 +580,66 @@ function applyContentInputStyle() {
 }
 
 function showListView() {
+  const user = getCurrentUser();
+  activeView = "meeting-list";
+  hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \ubaa9\ub85d";
   viewHeading.classList.remove("hidden");
-  detailPanel.classList.add("hidden");
-  calendarPanel.classList.add("hidden");
-  issuePanel.classList.add("hidden");
   boardList.classList.remove("hidden");
   searchInput.closest(".controls").classList.remove("hidden");
   newPostButton.classList.remove("hidden");
-  editPostButton.classList.add("hidden");
-  menuListButton.classList.add("active");
-  menuCalendarButton.classList.remove("active");
-  menuIssueButton.classList.remove("active");
+  deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
+  setMenuActive(menuListButton);
+  renderBoard();
 }
 
 function showCalendarView() {
+  activeView = "meeting-calendar";
+  hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \uce98\ub9b0\ub354";
   viewHeading.classList.remove("hidden");
-  detailPanel.classList.add("hidden");
-  boardList.classList.add("hidden");
-  issuePanel.classList.add("hidden");
-  searchInput.closest(".controls").classList.add("hidden");
   calendarPanel.classList.remove("hidden");
   newPostButton.classList.remove("hidden");
-  editPostButton.classList.add("hidden");
-  menuListButton.classList.remove("active");
-  menuCalendarButton.classList.add("active");
-  menuIssueButton.classList.remove("active");
+  setMenuActive(menuCalendarButton);
   renderCalendar();
 }
 
-function showIssueView() {
-  viewHeading.textContent = "\uc8fc\uac04\uc774\uc288 \ucee8\ud150\uce20 \uc815\ub9ac";
+function showScheduleListView() {
+  const user = getCurrentUser();
+  activeView = "schedule-list";
+  hideMainPanels();
+  viewHeading.textContent = "\uc77c\uc815 - \ubaa9\ub85d";
   viewHeading.classList.remove("hidden");
-  detailPanel.classList.add("hidden");
-  boardList.classList.add("hidden");
-  calendarPanel.classList.add("hidden");
-  searchInput.closest(".controls").classList.add("hidden");
+  scheduleListPanel.classList.remove("hidden");
+  newPostButton.classList.remove("hidden");
+  deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
+  setMenuActive(menuScheduleListButton);
+  renderScheduleList();
+}
+
+function showScheduleCalendarView() {
+  activeView = "schedule-calendar";
+  hideMainPanels();
+  viewHeading.textContent = "\uc77c\uc815 - \uce98\ub9b0\ub354";
+  viewHeading.classList.remove("hidden");
+  scheduleCalendarPanel.classList.remove("hidden");
+  newPostButton.classList.remove("hidden");
+  setMenuActive(menuScheduleCalendarButton);
+  renderScheduleCalendar();
+}
+
+function showAdminView() {
+  const user = getCurrentUser();
+  if (!isAdminUser(user)) return;
+
+  viewHeading.textContent = "\uad00\ub9ac\uc790 \ud398\uc774\uc9c0";
+  viewHeading.classList.remove("hidden");
+  hideMainPanels();
   setPostFormOpen(false);
-  postPanel.classList.add("hidden");
-  issuePanel.classList.remove("hidden");
+  adminPanel.classList.remove("hidden");
   newPostButton.classList.add("hidden");
-  editPostButton.classList.add("hidden");
-  menuListButton.classList.remove("active");
-  menuCalendarButton.classList.remove("active");
-  menuIssueButton.classList.add("active");
-  renderIssueRows();
+  setMenuActive(null);
+  renderAdminRows();
 }
 
 function showDetailView(postId) {
@@ -330,21 +647,16 @@ function showDetailView(postId) {
   if (!post) return;
 
   setPostFormOpen(false);
+  hideMainPanels();
   viewHeading.classList.add("hidden");
-  boardList.classList.add("hidden");
-  calendarPanel.classList.add("hidden");
-  issuePanel.classList.add("hidden");
-  searchInput.closest(".controls").classList.add("hidden");
-  newPostButton.classList.add("hidden");
   detailPanel.classList.remove("hidden");
-  editPostButton.classList.toggle("hidden", post.authorId !== getCurrentUser()?.id);
+  editPostButton.classList.remove("hidden");
   editPostButton.dataset.postId = post.id;
 
   detailDate.textContent = post.dateText;
   detailTitle.textContent = post.title;
   detailTopic.textContent = post.topic;
-  detailTypeOne.replaceChildren(makeTag(post.type1));
-  detailTypeTwo.replaceChildren(makeTag(post.type2));
+  detailTypeTwo.replaceChildren(makeTag(normalizeType(post.type2)));
   detailAuthor.textContent = post.authorName || "";
   detailParticipants.replaceChildren(makeParticipants(post.participants));
   detailContent.style.fontSize = `${post.contentFontSize || "16"}px`;
@@ -354,7 +666,7 @@ function showDetailView(postId) {
 }
 
 function getPostDate(post) {
-  const value = post.dateValue || post.date;
+  const value = normalizeDateValue(post.dateValue || post.date);
   const hour = Number(post.hour || 0);
   const hour24 = post.period === "PM" && hour < 12
     ? hour + 12
@@ -418,7 +730,7 @@ function renderCalendar() {
 
     (postsByDate.get(key) || []).forEach((post) => {
       const button = document.createElement("button");
-      button.className = `calendar-event ${tagColor[post.type2] || "blue"}`;
+      button.className = "calendar-event black";
       button.type = "button";
       button.textContent = post.title;
       button.addEventListener("click", () => showDetailView(post.id));
@@ -442,73 +754,131 @@ function makeOptionSelect(value, options, onChange) {
   return select;
 }
 
-function makeIssueTextInput(value, onInput) {
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = value;
-  input.addEventListener("input", () => onInput(input.value));
-  return input;
-}
+function renderAdminRows() {
+  if (!adminRows) return;
 
-async function updateIssueItem(id, key, value) {
-  issueItems = issueItems.map((item) => item.id === id ? { ...item, [key]: value } : item);
-  try {
-    await setDoc(doc(db, "weeklyIssues", id), { [key]: value }, { merge: true });
-  } catch (error) {
-    console.error("주간이슈 컨텐츠 저장에 실패했습니다.", error);
-  }
-  if (key === "week") {
-    renderIssueRows();
-  }
-}
+  const roleOptions = [
+    { value: "member", label: "\uc77c\ubc18" },
+    { value: "admin", label: "\uad00\ub9ac\uc790" }
+  ];
+  const teamUsers = VALID_USERS.filter((user) => user.id !== "admin");
 
-function getIssueGroupClass(item) {
-  const week = Number(item.week || 0);
-  return `issue-week-${week || 1}`;
-}
-
-function renderIssueRows() {
-  const monthOptions = Array.from({ length: 12 }, (_, index) => ({
-    value: String(index + 1),
-    label: `${index + 1}\uc6d4`
-  }));
-  const weekOptions = Array.from({ length: 5 }, (_, index) => ({
-    value: String(index + 1),
-    label: `${index + 1}\uc8fc\ucc28`
-  }));
-  const categoryOptions = ISSUE_CATEGORY_OPTIONS.map((option) => ({ value: option, label: option }));
-
-  const keyword = issueSearchInput.value.trim().toLowerCase();
-  const categoryFilter = issueCategoryFilter.value;
-  const filteredItems = issueItems.filter((item) => {
-    const searchable = [item.topic, item.organization, item.category].join(" ").toLowerCase();
-    return (!keyword || searchable.includes(keyword))
-      && (!categoryFilter || item.category === categoryFilter);
-  });
-
-  issueRows.replaceChildren();
-  filteredItems.forEach((item) => {
+  adminRows.replaceChildren();
+  teamUsers.forEach((user) => {
     const row = document.createElement("tr");
-    row.className = getIssueGroupClass(item);
+    const id = document.createElement("td");
+    const name = document.createElement("td");
+    const role = document.createElement("td");
+    const select = makeOptionSelect(getStoredUserRole(user.id), roleOptions, () => {
+      adminMessage.textContent = "";
+    });
 
-    const month = document.createElement("td");
-    month.append(makeOptionSelect(item.month, monthOptions, (value) => updateIssueItem(item.id, "month", value)));
-
-    const week = document.createElement("td");
-    week.append(makeOptionSelect(item.week, weekOptions, (value) => updateIssueItem(item.id, "week", value)));
-
-    const category = document.createElement("td");
-    category.append(makeOptionSelect(item.category, categoryOptions, (value) => updateIssueItem(item.id, "category", value)));
-
-    const topic = document.createElement("td");
-    topic.append(makeIssueTextInput(item.topic, (value) => updateIssueItem(item.id, "topic", value)));
-
-    const organization = document.createElement("td");
-    organization.append(makeIssueTextInput(item.organization, (value) => updateIssueItem(item.id, "organization", value)));
-
-    row.append(month, week, category, topic, organization);
-    issueRows.append(row);
+    select.dataset.userId = user.id;
+    id.textContent = user.id;
+    name.textContent = user.name;
+    role.append(select);
+    row.append(id, name, role);
+    adminRows.append(row);
   });
+}
+
+async function saveAdminRoles() {
+  const roles = {};
+  adminRows.querySelectorAll("select[data-user-id]").forEach((select) => {
+    roles[select.dataset.userId] = select.value;
+  });
+
+  try {
+    await setDoc(adminRolesRef, { roles, updatedAt: new Date().toISOString() }, { merge: true });
+    adminMessage.textContent = "\uad00\ub9ac\uc790 \uad8c\ud55c\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.";
+  } catch (error) {
+    console.error("관리자 권한 저장에 실패했습니다.", error);
+    adminMessage.textContent = "\uc800\uc7a5 \uad8c\ud55c \ub610\ub294 Firebase \uc5f0\uacb0 \uc0c1\ud0dc\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.";
+  }
+}
+
+function getSelectedPostIds() {
+  return Array.from(boardRows.querySelectorAll(".post-delete-checkbox:checked")).map((checkbox) => checkbox.value);
+}
+
+function getSelectedWorkIds() {
+  return Array.from(workRows.querySelectorAll(".work-delete-checkbox:checked")).map((checkbox) => checkbox.value);
+}
+
+function getSelectedScheduleIds() {
+  return Array.from(scheduleRows.querySelectorAll(".schedule-delete-checkbox:checked")).map((checkbox) => checkbox.value);
+}
+
+function setDeleteConfirmOpen(isOpen) {
+  deleteConfirmModal.classList.toggle("hidden", !isOpen);
+  if (isOpen) {
+    confirmDeleteYes.focus();
+  }
+}
+
+async function deleteSelectedPosts() {
+  if (!isAdminUser(getCurrentUser())) return;
+  const selectedIds = activeView === "work-list"
+    ? getSelectedWorkIds()
+    : activeView === "schedule-list"
+      ? getSelectedScheduleIds()
+      : getSelectedPostIds();
+  const collectionName = activeView === "work-list"
+    ? "workStatus"
+    : activeView === "schedule-list"
+      ? "schedules"
+      : "meetingMinutes";
+  if (selectedIds.length === 0) return;
+
+  try {
+    await Promise.all(selectedIds.map((id) => deleteDoc(doc(db, collectionName, id))));
+    setDeleteConfirmOpen(false);
+    selectAllPosts.checked = false;
+    selectAllWorkItems.checked = false;
+    selectAllSchedules.checked = false;
+  } catch (error) {
+    console.error("Failed to delete selected items.", error);
+  }
+}
+
+function renderPagination(totalItems) {
+  const totalPages = Math.ceil(totalItems / BOARD_PAGE_SIZE);
+  pagination.replaceChildren();
+  pagination.classList.toggle("hidden", totalPages <= 1);
+  if (totalPages <= 1) return;
+
+  const prevButton = document.createElement("button");
+  prevButton.type = "button";
+  prevButton.textContent = "\uc774\uc804";
+  prevButton.disabled = currentBoardPage === 1;
+  prevButton.addEventListener("click", () => {
+    currentBoardPage = Math.max(1, currentBoardPage - 1);
+    renderBoard();
+  });
+  pagination.append(prevButton);
+
+  for (let page = 1; page <= totalPages; page += 1) {
+    const pageButton = document.createElement("button");
+    pageButton.type = "button";
+    pageButton.textContent = String(page);
+    pageButton.classList.toggle("active", page === currentBoardPage);
+    pageButton.setAttribute("aria-current", page === currentBoardPage ? "page" : "false");
+    pageButton.addEventListener("click", () => {
+      currentBoardPage = page;
+      renderBoard();
+    });
+    pagination.append(pageButton);
+  }
+
+  const nextButton = document.createElement("button");
+  nextButton.type = "button";
+  nextButton.textContent = "\ub2e4\uc74c";
+  nextButton.disabled = currentBoardPage === totalPages;
+  nextButton.addEventListener("click", () => {
+    currentBoardPage = Math.min(totalPages, currentBoardPage + 1);
+    renderBoard();
+  });
+  pagination.append(nextButton);
 }
 
 function escapeHtml(value) {
@@ -593,11 +963,20 @@ function applyBoldToSelection() {
 
 function formatDateLabel(dateValue, period, hour) {
   if (!dateValue) return "";
-  const date = new Date(`${dateValue}T00:00:00`);
+  const date = new Date(`${normalizeDateValue(dateValue)}T00:00:00`);
+  const year = String(date.getFullYear()).slice(-2);
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const periodText = period === "PM" ? "\uc624\ud6c4" : "\uc624\uc804";
-  return `${month}\uc6d4 ${day}\uc77c ${periodText} ${hour}\uc2dc`;
+  return `${year}\ub144 ${month}\uc6d4 ${day}\uc77c ${periodText} ${hour}\uc2dc`;
+}
+
+function formatShortDate(dateValue) {
+  if (!dateValue) return "";
+  const date = new Date(`${normalizeDateValue(dateValue)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  const year = String(date.getFullYear()).slice(-2);
+  return `${year}\ub144 ${date.getMonth() + 1}\uc6d4 ${date.getDate()}\uc77c`;
 }
 
 function splitDateLabel(dateText) {
@@ -614,6 +993,83 @@ function makeTag(text) {
   tag.className = `tag ${tagColor[text] || "blue"}`;
   tag.textContent = text;
   return tag;
+}
+
+function makeStatusTag(status) {
+  const tag = document.createElement("span");
+  const classMap = {
+    "\uc9c4\ud589": "red",
+    "\uc77c\uc2dc\uc911\uc9c0": "yellow",
+    "\ub300\uae30": "green",
+    "\ubcf4\ub958": "gray",
+    "\uace0\ub824\uc911": "purple",
+    "\uc644\ub8cc": "blue"
+  };
+  tag.className = `status-tag ${classMap[status] || "gray"}`;
+  tag.textContent = status;
+  return tag;
+}
+
+function formatWorkPeriod(item) {
+  const start = formatShortDate(item.startDate);
+  const end = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
+  return `${start} ~ ${end}`;
+}
+
+function formatSchedulePeriod(item) {
+  const start = formatShortDate(item.startDate);
+  const end = formatShortDate(item.endDate || item.startDate);
+  return start === end ? start : `${start} ~ ${end}`;
+}
+
+function renderWorkDashboard() {
+  if (!workDashboardPanel) return;
+  const sortedItems = getFilteredWorkItems().sort((a, b) => (normalizeDateValue(a.startDate) || "").localeCompare(normalizeDateValue(b.startDate) || ""));
+  workDashboardPanel.replaceChildren();
+
+  WORK_DASHBOARD_STATUS_ORDER.forEach((status) => {
+    const section = document.createElement("section");
+    section.className = "dashboard-status-section";
+    const heading = document.createElement("h2");
+    heading.append(makeStatusTag(status));
+    section.append(heading);
+
+    const cards = document.createElement("div");
+    cards.className = "dashboard-card-grid";
+
+    sortedItems.filter((item) => item.status === status).forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "dashboard-work-card";
+
+      const title = document.createElement("h3");
+      title.textContent = item.title;
+
+      const category = document.createElement("p");
+      category.className = "dashboard-meta category";
+      category.textContent = item.category;
+
+      const assignees = document.createElement("p");
+      assignees.className = "dashboard-meta";
+      assignees.textContent = getAssigneeNames(item).join(", ");
+
+      const period = document.createElement("p");
+      period.className = "dashboard-meta period";
+      period.textContent = formatWorkPeriod(item);
+
+      card.append(title, category, assignees, period);
+      cards.append(card);
+    });
+
+    if (!cards.children.length) {
+      const empty = document.createElement("p");
+      empty.className = "dashboard-empty";
+      empty.textContent = "\ud574\ub2f9 \uc0c1\ud0dc\uc758 \uc5c5\ubb34\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.";
+      cards.append(empty);
+    }
+
+    section.append(cards);
+    workDashboardPanel.append(section);
+  });
 }
 
 function makeParticipants(people) {
@@ -655,17 +1111,13 @@ function appendOptions(select, options, includeAll) {
 }
 
 function populateFormControls() {
-  appendOptions(categoryOne, TYPE_ONE_OPTIONS, false);
-  appendOptions(categoryTwo, TYPE_TWO_OPTIONS, false);
-  appendOptions(postTypeOne, TYPE_ONE_OPTIONS, false);
-  appendOptions(postTypeTwo, TYPE_TWO_OPTIONS, false);
-
-  ISSUE_CATEGORY_OPTIONS.forEach((category) => {
-    const option = document.createElement("option");
-    option.value = category;
-    option.textContent = category;
-    issueCategoryFilter.append(option);
-  });
+  appendOptions(categoryTwo, TYPE_OPTIONS, false);
+  appendOptions(postTypeTwo, TYPE_OPTIONS, false);
+  appendOptions(workStatus, WORK_STATUS_OPTIONS, false);
+  appendOptions(workCategory, WORK_CATEGORY_OPTIONS, false);
+  appendOptions(workFilterStatus, WORK_STATUS_OPTIONS, false);
+  appendOptions(workFilterCategory, WORK_CATEGORY_OPTIONS, false);
+  appendOptions(scheduleCategory, SCHEDULE_CATEGORY_OPTIONS, false);
 
   VALID_USERS.filter((user) => user.id !== "admin").forEach((user) => {
     const label = document.createElement("label");
@@ -682,28 +1134,52 @@ function populateFormControls() {
     label.append(checkbox, span);
     participantChoices.append(label);
   });
+
+  [
+    { id: "team-sme", name: "\uc911\uc18c\uae30\uc5c5\ud300" },
+    ...VALID_USERS.filter((user) => user.id !== "admin")
+  ].forEach((assignee) => {
+    const label = document.createElement("label");
+    label.className = "participant-choice";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.name = "workAssignees";
+    checkbox.value = assignee.id;
+    const span = document.createElement("span");
+    span.textContent = assignee.name;
+    label.append(checkbox, span);
+    workAssigneeChoices.append(label);
+
+    const filterOption = document.createElement("option");
+    filterOption.value = assignee.id;
+    filterOption.textContent = assignee.name;
+    workFilterAssignee.append(filterOption);
+  });
 }
 
 function getFilteredItems() {
   const keyword = searchInput.value.trim().toLowerCase();
-  const typeOne = categoryOne.value;
+  const startDate = startDateFilter.value;
+  const endDate = endDateFilter.value;
   const typeTwo = categoryTwo.value;
 
   const filtered = boardItems.filter((item) => {
+    const type = normalizeType(item.type2);
+    const itemDate = normalizeDateValue(item.dateValue || item.date);
     const searchable = [
       item.dateText,
       item.title,
       item.topic,
       item.content,
       item.authorName,
-      item.type1,
-      item.type2,
+      type,
       item.participants.join(" ")
     ].join(" ").toLowerCase();
 
     return (!keyword || searchable.includes(keyword))
-      && (!typeOne || item.type1 === typeOne)
-      && (!typeTwo || item.type2 === typeTwo);
+      && (!startDate || itemDate >= startDate)
+      && (!endDate || itemDate <= endDate)
+      && (!typeTwo || type === typeTwo);
   });
 
   return sortPostsByRecent(filtered);
@@ -711,11 +1187,34 @@ function getFilteredItems() {
 
 function renderBoard() {
   const items = getFilteredItems();
+  const totalPages = Math.max(1, Math.ceil(items.length / BOARD_PAGE_SIZE));
+  if (currentBoardPage > totalPages) {
+    currentBoardPage = totalPages;
+  }
+  const pageStart = (currentBoardPage - 1) * BOARD_PAGE_SIZE;
+  const pageItems = items.slice(pageStart, pageStart + BOARD_PAGE_SIZE);
+  const canDelete = isAdminUser(getCurrentUser());
+  tableWrap.classList.toggle("admin-delete-mode", canDelete);
+  deleteSelectHeader.classList.toggle("hidden", !canDelete);
+  selectAllPosts.checked = false;
   boardRows.replaceChildren();
 
-  items.forEach((item) => {
+  pageItems.forEach((item) => {
+    const type = normalizeType(item.type2);
     const row = document.createElement("tr");
-    row.className = tagColor[item.type2] || tagColor[item.type1] || "blue";
+    row.className = "black";
+
+    if (canDelete) {
+      const selector = document.createElement("td");
+      selector.className = "delete-select-cell";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "post-delete-checkbox";
+      checkbox.value = item.id;
+      checkbox.setAttribute("aria-label", `${item.title} \uc120\ud0dd`);
+      selector.append(checkbox);
+      row.append(selector);
+    }
 
     const date = document.createElement("td");
     date.className = "date-cell";
@@ -746,11 +1245,7 @@ function renderBoard() {
 
     const types = document.createElement("td");
     types.className = "type-cell";
-    types.append(makeTag(item.type1));
-    const divider = document.createElement("span");
-    divider.className = "type-divider";
-    divider.textContent = "/";
-    types.append(divider, makeTag(item.type2));
+    types.append(makeTag(type));
 
     const author = document.createElement("td");
     author.className = "author-cell";
@@ -760,14 +1255,217 @@ function renderBoard() {
     boardRows.append(row);
   });
   emptyState.classList.toggle("hidden", items.length > 0);
+  renderPagination(items.length);
 }
 
-loginForm.addEventListener("submit", (event) => {
+function canEditWorkItem(item) {
+  const user = getCurrentUser();
+  return isAdminUser(user) || getAssigneeIds(item).includes(user?.id);
+}
+
+function getFilteredWorkItems() {
+  const startDate = workFilterStartDate.value;
+  const endDate = workFilterEndDate.value;
+  const assignee = workFilterAssignee.value;
+  const status = workFilterStatus.value;
+  const category = workFilterCategory.value;
+
+  return workItems.filter((item) => {
+    const itemStart = normalizeDateValue(item.startDate);
+    const itemEnd = item.noEndDate ? itemStart : normalizeDateValue(item.endDate || item.startDate);
+    return (!startDate || itemEnd >= startDate)
+      && (!endDate || itemStart <= endDate)
+      && (!assignee || getAssigneeIds(item).includes(assignee))
+      && (!status || item.status === status)
+      && (!category || item.category === category);
+  });
+}
+
+function renderWorkList() {
+  if (!workRows) return;
+  const sortedItems = getFilteredWorkItems().sort((a, b) => (normalizeDateValue(b.startDate) || "").localeCompare(normalizeDateValue(a.startDate) || ""));
+  const canDelete = isAdminUser(getCurrentUser());
+  workDeleteSelectHeader.classList.toggle("hidden", !canDelete);
+  selectAllWorkItems.checked = false;
+  workRows.replaceChildren();
+
+  sortedItems.forEach((item) => {
+    const row = document.createElement("tr");
+    row.className = "black";
+
+    if (canDelete) {
+      const selector = document.createElement("td");
+      selector.className = "delete-select-cell";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "work-delete-checkbox";
+      checkbox.value = item.id;
+      checkbox.setAttribute("aria-label", `${item.title} \uc120\ud0dd`);
+      selector.append(checkbox);
+      row.append(selector);
+    }
+
+    const start = document.createElement("td");
+    start.textContent = formatShortDate(item.startDate);
+
+    const end = document.createElement("td");
+    end.textContent = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
+
+    const title = document.createElement("td");
+    title.className = "title-cell";
+    if (canEditWorkItem(item)) {
+      const button = document.createElement("button");
+      button.className = "link-button";
+      button.type = "button";
+      button.textContent = item.title;
+      button.addEventListener("click", () => {
+        showWorkListView();
+        fillWorkForm(item);
+        setWorkFormOpen(true);
+      });
+      title.append(button);
+    } else {
+      title.textContent = item.title;
+    }
+
+    const assignee = document.createElement("td");
+    assignee.textContent = getAssigneeNames(item).join(", ");
+
+    const status = document.createElement("td");
+    status.append(makeStatusTag(item.status));
+
+    const category = document.createElement("td");
+    category.textContent = item.category;
+
+    row.append(start, end, title, assignee, status, category);
+    workRows.append(row);
+  });
+
+  workEmptyState.classList.toggle("hidden", sortedItems.length > 0);
+}
+
+function canManageScheduleItem(item) {
+  const user = getCurrentUser();
+  return isAdminUser(user) || item.authorId === user?.id;
+}
+
+function renderScheduleList() {
+  if (!scheduleRows) return;
+  const sortedItems = [...scheduleItems].sort((a, b) => (normalizeDateValue(a.startDate) || "").localeCompare(normalizeDateValue(b.startDate) || ""));
+  const canDelete = isAdminUser(getCurrentUser());
+  scheduleDeleteSelectHeader.classList.toggle("hidden", !canDelete);
+  selectAllSchedules.checked = false;
+  scheduleRows.replaceChildren();
+
+  sortedItems.forEach((item) => {
+    const row = document.createElement("tr");
+    row.className = "black";
+
+    if (canDelete) {
+      const selector = document.createElement("td");
+      selector.className = "delete-select-cell";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "schedule-delete-checkbox";
+      checkbox.value = item.id;
+      checkbox.setAttribute("aria-label", `${item.description} \uc120\ud0dd`);
+      selector.append(checkbox);
+      row.append(selector);
+    }
+
+    const date = document.createElement("td");
+    date.textContent = formatSchedulePeriod(item);
+
+    const category = document.createElement("td");
+    category.textContent = item.category;
+
+    const description = document.createElement("td");
+    description.textContent = item.description;
+
+    const actions = document.createElement("td");
+    actions.className = "action-cell";
+    if (canManageScheduleItem(item)) {
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "small-action-button";
+      edit.textContent = "\uc218\uc815";
+      edit.addEventListener("click", () => {
+        showScheduleListView();
+        fillScheduleForm(item);
+        setScheduleFormOpen(true);
+      });
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "small-action-button danger";
+      remove.textContent = "\uc0ad\uc81c";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("\uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?")) return;
+        await deleteDoc(doc(db, "schedules", item.id));
+      });
+      actions.append(edit, remove);
+    }
+
+    row.append(date, category, description, actions);
+    scheduleRows.append(row);
+  });
+
+  scheduleEmptyState.classList.toggle("hidden", sortedItems.length > 0);
+}
+
+function renderScheduleCalendar() {
+  if (!scheduleCalendarGrid) return;
+  const year = currentScheduleCalendarDate.getFullYear();
+  const month = currentScheduleCalendarDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  scheduleCalendarTitle.textContent = `${year}.${String(month + 1).padStart(2, "0")}`;
+  scheduleCalendarGrid.replaceChildren();
+
+  for (let i = 0; i < firstDay.getDay(); i += 1) {
+    const empty = document.createElement("div");
+    empty.className = "calendar-cell muted";
+    scheduleCalendarGrid.append(empty);
+  }
+
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    const date = new Date(year, month, day);
+    const key = getDateKey(date);
+    const cell = document.createElement("div");
+    cell.className = "calendar-cell";
+    const dayNumber = document.createElement("span");
+    dayNumber.className = "day-number";
+    dayNumber.textContent = String(day);
+    cell.append(dayNumber);
+
+    scheduleItems.filter((item) => {
+      const start = normalizeDateValue(item.startDate);
+      const end = normalizeDateValue(item.endDate || item.startDate);
+      return key >= start && key <= end;
+    }).forEach((item) => {
+      const badge = document.createElement("button");
+      badge.className = "calendar-event black";
+      badge.type = "button";
+      badge.textContent = `${item.category} ${item.description}`;
+      if (canManageScheduleItem(item)) {
+        badge.addEventListener("click", () => {
+          showScheduleListView();
+          fillScheduleForm(item);
+          setScheduleFormOpen(true);
+        });
+      }
+      cell.append(badge);
+    });
+
+    scheduleCalendarGrid.append(cell);
+  }
+}
+
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
   const userId = String(formData.get("userId")).trim();
-  const password = String(formData.get("password"));
-  const user = VALID_USERS.find((item) => item.id === userId && item.password === password);
+  const user = VALID_USERS.find((item) => item.id === userId);
 
   if (!user) {
     loginError.textContent = ko.badLogin;
@@ -775,8 +1473,16 @@ loginForm.addEventListener("submit", (event) => {
   }
 
   loginError.textContent = "";
-  sessionStorage.setItem("currentUser", JSON.stringify(user));
-  setView(user);
+  try {
+    await ensureAnonymousAuth();
+    startFirestoreListeners();
+    const loginUser = { ...user, role: getStoredUserRole(user.id) };
+    sessionStorage.setItem("currentUser", JSON.stringify(loginUser));
+    setView(loginUser);
+  } catch (error) {
+    console.error("Failed to sign in anonymously.", error);
+    loginError.textContent = ko.authFailed;
+  }
 });
 
 postForm.addEventListener("submit", async (event) => {
@@ -801,8 +1507,8 @@ postForm.addEventListener("submit", async (event) => {
     content: String(formData.get("content")).trim(),
     contentFontSize: String(formData.get("contentFontSize")),
     contentColor: String(formData.get("contentColor")),
-    type1: String(formData.get("type1")),
-    type2: String(formData.get("type2")),
+    type1: "",
+    type2: normalizeType(String(formData.get("type2"))),
     participants,
     authorId: getCurrentUser()?.id || "",
     authorName: getCurrentUser()?.name || "",
@@ -812,7 +1518,7 @@ postForm.addEventListener("submit", async (event) => {
   try {
     if (editingPostId) {
       const existingPost = boardItems.find((item) => item.id === editingPostId);
-      if (!existingPost || existingPost.authorId !== getCurrentUser()?.id) return;
+      if (!existingPost) return;
 
       await setDoc(doc(db, "meetingMinutes", editingPostId), {
         date: post.date,
@@ -825,7 +1531,7 @@ postForm.addEventListener("submit", async (event) => {
         content: post.content,
         contentFontSize: post.contentFontSize,
         contentColor: post.contentColor,
-        type1: post.type1,
+        type1: "",
         type2: post.type2,
         participants: post.participants,
         updatedAt: new Date().toISOString()
@@ -845,7 +1551,120 @@ postForm.addEventListener("submit", async (event) => {
   showListView();
 });
 
+workForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new FormData(workForm);
+  const assigneeIds = formData.getAll("workAssignees").map(String);
+  if (assigneeIds.length === 0) {
+    workFormMessage.textContent = "\ub2f4\ub2f9\uc790\ub97c 1\uba85 \uc774\uc0c1 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
+    return;
+  }
+  const noEndDate = formData.get("noEndDate") === "on";
+  const workItem = {
+    startDate: normalizeDateValue(String(formData.get("startDate"))),
+    endDate: noEndDate ? "" : normalizeDateValue(String(formData.get("endDate"))),
+    noEndDate,
+    title: String(formData.get("title")).trim(),
+    assigneeId: assigneeIds[0],
+    assigneeIds,
+    assigneeName: getUserName(assigneeIds[0]),
+    assigneeNames: assigneeIds.map(getUserName).filter(Boolean),
+    status: String(formData.get("status")),
+    category: String(formData.get("category")),
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    if (editingWorkId) {
+      const existingItem = workItems.find((item) => item.id === editingWorkId);
+      if (!existingItem || !canEditWorkItem(existingItem)) return;
+      await setDoc(doc(db, "workStatus", editingWorkId), {
+        startDate: workItem.startDate,
+        endDate: workItem.endDate,
+        noEndDate: workItem.noEndDate,
+        title: workItem.title,
+        assigneeId: workItem.assigneeId,
+        assigneeIds: workItem.assigneeIds,
+        assigneeName: workItem.assigneeName,
+        assigneeNames: workItem.assigneeNames,
+        status: workItem.status,
+        category: workItem.category,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } else {
+      await addDoc(workCollection, workItem);
+    }
+  } catch (error) {
+    console.error("Failed to save work status.", error);
+    workFormMessage.textContent = "저장 권한 또는 Firebase 연결 상태를 확인해주세요.";
+    return;
+  }
+
+  clearWorkForm();
+  setWorkFormOpen(false);
+  showWorkListView();
+});
+
+scheduleForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const user = getCurrentUser();
+  const formData = new FormData(scheduleForm);
+  const scheduleItem = {
+    startDate: normalizeDateValue(String(formData.get("startDate"))),
+    endDate: normalizeDateValue(String(formData.get("endDate"))),
+    category: String(formData.get("category")),
+    description: String(formData.get("description")).trim(),
+    authorId: user?.id || "",
+    authorName: user?.name || "",
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    if (editingScheduleId) {
+      const existingItem = scheduleItems.find((item) => item.id === editingScheduleId);
+      if (!existingItem || !canManageScheduleItem(existingItem)) return;
+      await setDoc(doc(db, "schedules", editingScheduleId), {
+        startDate: scheduleItem.startDate,
+        endDate: scheduleItem.endDate,
+        category: scheduleItem.category,
+        description: scheduleItem.description,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } else {
+      await addDoc(scheduleCollection, scheduleItem);
+    }
+  } catch (error) {
+    console.error("Failed to save schedule.", error);
+    scheduleFormMessage.textContent = "저장 권한 또는 Firebase 연결 상태를 확인해주세요.";
+    return;
+  }
+
+  clearScheduleForm();
+  setScheduleFormOpen(false);
+  showScheduleListView();
+});
+
 newPostButton.addEventListener("click", () => {
+  if (activeView === "schedule-list" || activeView === "schedule-calendar") {
+    if (scheduleFormPanel.classList.contains("hidden")) {
+      clearScheduleForm();
+      setScheduleFormOpen(true);
+      return;
+    }
+    setScheduleFormOpen(false);
+    return;
+  }
+
+  if (activeView === "work-list") {
+    if (workFormPanel.classList.contains("hidden")) {
+      clearWorkForm();
+      setWorkFormOpen(true);
+      return;
+    }
+    setWorkFormOpen(false);
+    return;
+  }
+
   if (postPanel.classList.contains("hidden")) {
     clearPostForm();
     setPostFormOpen(true);
@@ -859,22 +1678,87 @@ cancelPostButton.addEventListener("click", () => {
   setPostFormOpen(false);
 });
 
+cancelWorkButton.addEventListener("click", () => {
+  clearWorkForm();
+  setWorkFormOpen(false);
+});
+
+cancelScheduleButton.addEventListener("click", () => {
+  clearScheduleForm();
+  setScheduleFormOpen(false);
+});
+
+workNoEndDate.addEventListener("change", () => {
+  workEndDate.disabled = workNoEndDate.checked;
+  if (workNoEndDate.checked) {
+    workEndDate.value = "";
+  }
+});
+
 editPostButton.addEventListener("click", () => {
   const post = boardItems.find((item) => item.id === editPostButton.dataset.postId);
-  if (!post || post.authorId !== getCurrentUser()?.id) return;
+  if (!post) return;
 
   showListView();
   fillPostForm(post);
   setPostFormOpen(true);
 });
 
+deleteSelectedButton.addEventListener("click", () => {
+  const selectedIds = activeView === "work-list"
+    ? getSelectedWorkIds()
+    : activeView === "schedule-list"
+      ? getSelectedScheduleIds()
+      : getSelectedPostIds();
+  if (selectedIds.length === 0) return;
+  setDeleteConfirmOpen(true);
+});
+
+confirmDeleteYes.addEventListener("click", deleteSelectedPosts);
+
+confirmDeleteNo.addEventListener("click", () => setDeleteConfirmOpen(false));
+
+deleteConfirmModal.addEventListener("click", (event) => {
+  if (event.target === deleteConfirmModal) {
+    setDeleteConfirmOpen(false);
+  }
+});
+
+selectAllPosts.addEventListener("change", () => {
+  boardRows.querySelectorAll(".post-delete-checkbox").forEach((checkbox) => {
+    checkbox.checked = selectAllPosts.checked;
+  });
+});
+
+selectAllWorkItems.addEventListener("change", () => {
+  workRows.querySelectorAll(".work-delete-checkbox").forEach((checkbox) => {
+    checkbox.checked = selectAllWorkItems.checked;
+  });
+});
+
+selectAllSchedules.addEventListener("change", () => {
+  scheduleRows.querySelectorAll(".schedule-delete-checkbox").forEach((checkbox) => {
+    checkbox.checked = selectAllSchedules.checked;
+  });
+});
+
 backToListButton.addEventListener("click", showListView);
+
+menuWorkDashboardButton.addEventListener("click", showWorkDashboardView);
+
+menuWorkListButton.addEventListener("click", showWorkListView);
 
 menuListButton.addEventListener("click", showListView);
 
 menuCalendarButton.addEventListener("click", showCalendarView);
 
-menuIssueButton.addEventListener("click", showIssueView);
+menuScheduleListButton.addEventListener("click", showScheduleListView);
+
+menuScheduleCalendarButton.addEventListener("click", showScheduleCalendarView);
+
+adminPageButton.addEventListener("click", showAdminView);
+
+saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 
 boldButton.addEventListener("click", applyBoldToSelection);
 
@@ -888,27 +1772,37 @@ nextMonthButton.addEventListener("click", () => {
   renderCalendar();
 });
 
-addIssueRowButton.addEventListener("click", async () => {
-  try {
-    await addDoc(issueCollection, createIssueItem());
-  } catch (error) {
-    console.error("주간이슈 컨텐츠 행 추가에 실패했습니다.", error);
-  }
+prevScheduleMonthButton.addEventListener("click", () => {
+  currentScheduleCalendarDate = new Date(currentScheduleCalendarDate.getFullYear(), currentScheduleCalendarDate.getMonth() - 1, 1);
+  renderScheduleCalendar();
 });
 
-[issueSearchInput, issueCategoryFilter].forEach((control) => {
-  control.addEventListener("input", renderIssueRows);
+nextScheduleMonthButton.addEventListener("click", () => {
+  currentScheduleCalendarDate = new Date(currentScheduleCalendarDate.getFullYear(), currentScheduleCalendarDate.getMonth() + 1, 1);
+  renderScheduleCalendar();
 });
 
-logoutButton.addEventListener("click", () => {
+logoutButton.addEventListener("click", async () => {
   sessionStorage.removeItem("currentUser");
+  stopFirestoreListeners();
+  await auth.signOut();
   loginForm.reset();
   showListView();
   setView(null);
 });
 
-[searchInput, categoryOne, categoryTwo].forEach((control) => {
-  control.addEventListener("input", renderBoard);
+[searchInput, startDateFilter, endDateFilter, categoryTwo].forEach((control) => {
+  control.addEventListener("input", () => {
+    currentBoardPage = 1;
+    renderBoard();
+  });
+});
+
+[workFilterStartDate, workFilterEndDate, workFilterAssignee, workFilterStatus, workFilterCategory].forEach((control) => {
+  control.addEventListener("input", () => {
+    renderWorkList();
+    renderWorkDashboard();
+  });
 });
 
 [contentFontSize, contentColor].forEach((control) => {
@@ -917,5 +1811,14 @@ logoutButton.addEventListener("click", () => {
 
 populateFormControls();
 applyContentInputStyle();
-setView(getCurrentUser());
-startFirestoreListeners();
+const savedUser = getCurrentUser();
+setView(savedUser);
+if (savedUser) {
+  ensureAnonymousAuth()
+    .then(startFirestoreListeners)
+    .catch((error) => {
+      console.error("Failed to restore anonymous auth.", error);
+      sessionStorage.removeItem("currentUser");
+      setView(null);
+    });
+}
