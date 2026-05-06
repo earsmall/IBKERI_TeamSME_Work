@@ -1,5 +1,26 @@
-const STORAGE_KEY = "teamStatusBoardPosts";
-const ISSUE_STORAGE_KEY = "weeklyIssueContentRows";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import {
+  addDoc,
+  collection,
+  doc,
+  getFirestore,
+  onSnapshot,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC2IAgurX44nkiTkSLMRjVEe6hCPLarQGA",
+  authDomain: "ibkeri-team-sme.firebaseapp.com",
+  projectId: "ibkeri-team-sme",
+  storageBucket: "ibkeri-team-sme.firebasestorage.app",
+  messagingSenderId: "528354283514",
+  appId: "1:528354283514:web:61517916ea841af4609e43"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const meetingCollection = collection(db, "meetingMinutes");
+const issueCollection = collection(db, "weeklyIssues");
 
 const ko = {
   admin: "\uad00\ub9ac\uc790",
@@ -29,7 +50,7 @@ const VALID_USERS = [
 const TYPE_ONE_OPTIONS = [ko.regular, ko.occasional];
 const TYPE_TWO_OPTIONS = [ko.allLab, ko.underHead, ko.underDirector, ko.underTeamLead];
 
-let boardItems = loadPosts();
+let boardItems = [];
 
 const loginView = document.querySelector("#loginView");
 const boardView = document.querySelector("#boardView");
@@ -96,7 +117,7 @@ const ISSUE_CATEGORY_OPTIONS = [
   "\ubd84\uc11d",
   "\uae30\ud0c0"
 ];
-let issueItems = loadIssueItems();
+let issueItems = [];
 
 const tagColor = {
   [ko.regular]: "brown",
@@ -107,42 +128,8 @@ const tagColor = {
   [ko.underTeamLead]: "green"
 };
 
-function loadPosts() {
-  try {
-    const posts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return posts.map((post) => {
-      const legacyDate = new Date(post.date);
-      const hasLegacyDate = !Number.isNaN(legacyDate.getTime());
-      const dateValue = post.dateValue || (hasLegacyDate ? getLocalDateValue(legacyDate) : post.date || "");
-      const hour24 = hasLegacyDate ? legacyDate.getHours() : 9;
-      const period = post.period || (hour24 >= 12 ? "PM" : "AM");
-      const hour = post.hour || String(hour24 % 12 || 12);
-      const author = post.authorName || VALID_USERS.find((user) => user.id === post.authorId)?.name || "";
-
-      return {
-      ...post,
-      dateValue,
-      period,
-      hour,
-      dateText: formatDateLabel(dateValue, period, hour) || post.dateText || "",
-      authorName: author,
-      content: post.content || "",
-      contentFontSize: post.contentFontSize || "16",
-      contentColor: post.contentColor || "#263442"
-      };
-    });
-  } catch {
-    return [];
-  }
-}
-
-function savePosts() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(boardItems));
-}
-
 function createIssueItem() {
   return {
-    id: String(Date.now() + Math.random()),
     month: "1",
     week: "1",
     category: ISSUE_CATEGORY_OPTIONS[0],
@@ -151,17 +138,56 @@ function createIssueItem() {
   };
 }
 
-function loadIssueItems() {
-  try {
-    const items = JSON.parse(localStorage.getItem(ISSUE_STORAGE_KEY) || "[]");
-    return Array.isArray(items) && items.length > 0 ? items : [createIssueItem()];
-  } catch {
-    return [createIssueItem()];
-  }
+function normalizeMeetingPost(id, post) {
+  const legacyDate = new Date(post.date);
+  const hasLegacyDate = !Number.isNaN(legacyDate.getTime());
+  const dateValue = post.dateValue || (hasLegacyDate ? getLocalDateValue(legacyDate) : post.date || "");
+  const hour24 = hasLegacyDate ? legacyDate.getHours() : 9;
+  const period = post.period || (hour24 >= 12 ? "PM" : "AM");
+  const hour = post.hour || String(hour24 % 12 || 12);
+  const author = post.authorName || VALID_USERS.find((user) => user.id === post.authorId)?.name || "";
+
+  return {
+    id,
+    ...post,
+    dateValue,
+    period,
+    hour,
+    dateText: formatDateLabel(dateValue, period, hour) || post.dateText || "",
+    authorName: author,
+    content: post.content || "",
+    contentFontSize: post.contentFontSize || "16",
+    contentColor: post.contentColor || "#263442",
+    participants: Array.isArray(post.participants) ? post.participants : []
+  };
 }
 
-function saveIssueItems() {
-  localStorage.setItem(ISSUE_STORAGE_KEY, JSON.stringify(issueItems));
+function normalizeIssueItem(id, item) {
+  return {
+    id,
+    month: item.month || "1",
+    week: item.week || "1",
+    category: item.category || ISSUE_CATEGORY_OPTIONS[0],
+    topic: item.topic || "",
+    organization: item.organization || ""
+  };
+}
+
+function startFirestoreListeners() {
+  onSnapshot(meetingCollection, (snapshot) => {
+    boardItems = snapshot.docs.map((item) => normalizeMeetingPost(item.id, item.data()));
+    renderBoard();
+    renderCalendar();
+  }, (error) => {
+    console.error("회의록을 불러오지 못했습니다.", error);
+  });
+
+  onSnapshot(issueCollection, (snapshot) => {
+    issueItems = snapshot.docs.map((item) => normalizeIssueItem(item.id, item.data()));
+    renderIssueRows();
+  }, (error) => {
+    console.error("주간이슈 컨텐츠를 불러오지 못했습니다.", error);
+  });
 }
 
 function getCurrentUser() {
@@ -424,9 +450,13 @@ function makeIssueTextInput(value, onInput) {
   return input;
 }
 
-function updateIssueItem(id, key, value) {
+async function updateIssueItem(id, key, value) {
   issueItems = issueItems.map((item) => item.id === id ? { ...item, [key]: value } : item);
-  saveIssueItems();
+  try {
+    await setDoc(doc(db, "weeklyIssues", id), { [key]: value }, { merge: true });
+  } catch (error) {
+    console.error("주간이슈 컨텐츠 저장에 실패했습니다.", error);
+  }
   if (key === "week") {
     renderIssueRows();
   }
@@ -749,7 +779,7 @@ loginForm.addEventListener("submit", (event) => {
   setView(user);
 });
 
-postForm.addEventListener("submit", (event) => {
+postForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(postForm);
   const participants = formData.getAll("participants").map(String);
@@ -779,14 +809,12 @@ postForm.addEventListener("submit", (event) => {
     createdAt: new Date().toISOString()
   };
 
-  if (editingPostId) {
-    const existingPost = boardItems.find((item) => item.id === editingPostId);
-    if (!existingPost || existingPost.authorId !== getCurrentUser()?.id) return;
+  try {
+    if (editingPostId) {
+      const existingPost = boardItems.find((item) => item.id === editingPostId);
+      if (!existingPost || existingPost.authorId !== getCurrentUser()?.id) return;
 
-    boardItems = boardItems.map((item) => {
-      if (item.id !== editingPostId) return item;
-      return {
-        ...item,
+      await setDoc(doc(db, "meetingMinutes", editingPostId), {
         date: post.date,
         dateValue: post.dateValue,
         period: post.period,
@@ -801,19 +829,20 @@ postForm.addEventListener("submit", (event) => {
         type2: post.type2,
         participants: post.participants,
         updatedAt: new Date().toISOString()
-      };
-    });
-  } else {
-    boardItems = [post, ...boardItems];
+      }, { merge: true });
+    } else {
+      await addDoc(meetingCollection, post);
+    }
+  } catch (error) {
+    console.error("게시글 저장에 실패했습니다.", error);
+    formMessage.textContent = "저장 권한 또는 Firebase 연결 상태를 확인해주세요.";
+    return;
   }
 
-  savePosts();
   clearPostForm();
   formMessage.textContent = ko.saved;
   setPostFormOpen(false);
   showListView();
-  renderBoard();
-  renderCalendar();
 });
 
 newPostButton.addEventListener("click", () => {
@@ -859,10 +888,12 @@ nextMonthButton.addEventListener("click", () => {
   renderCalendar();
 });
 
-addIssueRowButton.addEventListener("click", () => {
-  issueItems = [...issueItems, createIssueItem()];
-  saveIssueItems();
-  renderIssueRows();
+addIssueRowButton.addEventListener("click", async () => {
+  try {
+    await addDoc(issueCollection, createIssueItem());
+  } catch (error) {
+    console.error("주간이슈 컨텐츠 행 추가에 실패했습니다.", error);
+  }
 });
 
 [issueSearchInput, issueCategoryFilter].forEach((control) => {
@@ -887,5 +918,4 @@ logoutButton.addEventListener("click", () => {
 populateFormControls();
 applyContentInputStyle();
 setView(getCurrentUser());
-renderCalendar();
-renderIssueRows();
+startFirestoreListeners();
