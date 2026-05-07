@@ -258,6 +258,7 @@ let editingWorkId = null;
 let editingScheduleId = null;
 let editingMemoId = null;
 let activeView = "work-dashboard";
+let workDetailReturnView = "work-list";
 let currentCalendarDate = new Date();
 let currentScheduleCalendarDate = new Date();
 let adminRoleMap = {};
@@ -889,6 +890,7 @@ function showWorkDetailView(itemId) {
   const item = workItems.find((workItem) => workItem.id === itemId);
   if (!item) return;
   currentWorkDetailId = item.id;
+  workDetailReturnView = activeView === "work-dashboard" ? "work-dashboard" : "work-list";
   const canEdit = canEditWorkItem(item);
 
   setWorkFormOpen(false);
@@ -912,6 +914,14 @@ function showWorkDetailView(itemId) {
   workDetailAuthor.textContent = item.authorName || "";
   renderWorkUpdates(item);
   backToWorkListButton.focus();
+}
+
+function showWorkDetailReturnView() {
+  if (workDetailReturnView === "work-dashboard") {
+    showWorkDashboardView();
+    return;
+  }
+  showWorkListView();
 }
 
 function showMemoDetailView(itemId) {
@@ -2360,7 +2370,7 @@ selectAllMemos.addEventListener("change", () => {
 
 backToListButton.addEventListener("click", showListView);
 
-backToWorkListButton.addEventListener("click", showWorkListView);
+backToWorkListButton.addEventListener("click", showWorkDetailReturnView);
 
 backToMemoListButton.addEventListener("click", showMemoListView);
 
