@@ -973,6 +973,30 @@ function getActiveBulkDeleteTarget() {
   return { collectionName: "meetingMinutes", selectedIds: getSelectedPostIds() };
 }
 
+function refreshAfterDelete(collectionName, selectedIds) {
+  const deleted = new Set(selectedIds);
+
+  if (collectionName === "meetingMinutes") {
+    boardItems = boardItems.filter((item) => !deleted.has(item.id));
+    renderBoard();
+    renderCalendar();
+    return;
+  }
+
+  if (collectionName === "workStatus") {
+    workItems = workItems.filter((item) => !deleted.has(item.id));
+    renderWorkList();
+    renderWorkDashboard();
+    return;
+  }
+
+  if (collectionName === "schedules") {
+    scheduleItems = scheduleItems.filter((item) => !deleted.has(item.id));
+    renderScheduleList();
+    renderScheduleCalendar();
+  }
+}
+
 function setDeleteConfirmOpen(isOpen) {
   deleteConfirmModal.classList.toggle("hidden", !isOpen);
   if (!isOpen) {
@@ -998,11 +1022,18 @@ function setPasswordModalOpen(isOpen) {
 }
 
 async function deleteSelectedPosts(selectedIds, collectionName) {
-  if (!isAdminUser(getCurrentUser())) return;
-  if (selectedIds.length === 0) return;
+  if (!isAdminUser(getCurrentUser())) {
+    window.alert("\uad00\ub9ac\uc790\ub9cc \uc0ad\uc81c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.");
+    return;
+  }
+  if (selectedIds.length === 0) {
+    window.alert("\uc0ad\uc81c\ud560 \ud56d\ubaa9\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.");
+    return;
+  }
 
   try {
-    await Promise.all(selectedIds.map((id) => deleteDoc(doc(db, collectionName, id))));
+    await Promise.all(selectedIds.map((id) => db.collection(collectionName).doc(id).delete()));
+    refreshAfterDelete(collectionName, selectedIds);
     setDeleteConfirmOpen(false);
     selectAllPosts.checked = false;
     selectAllWorkItems.checked = false;
@@ -1020,6 +1051,7 @@ async function runPendingDelete() {
       setDeleteConfirmOpen(false);
     } catch (error) {
       console.error("Failed to delete item.", error);
+      window.alert("\uc0ad\uc81c\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. Firebase \uc5f0\uacb0 \ub610\ub294 \uad8c\ud55c\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
     }
     return;
   }
@@ -1926,7 +1958,10 @@ editPostButton.addEventListener("click", () => {
 
 deleteSelectedButton.addEventListener("click", () => {
   const { selectedIds, collectionName } = getActiveBulkDeleteTarget();
-  if (selectedIds.length === 0) return;
+  if (selectedIds.length === 0) {
+    window.alert("\uc0ad\uc81c\ud560 \ud56d\ubaa9\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.");
+    return;
+  }
   requestDelete(() => deleteSelectedPosts(selectedIds, collectionName));
 });
 
