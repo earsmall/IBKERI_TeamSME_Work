@@ -1532,6 +1532,30 @@ td:nth-child(5) {
   font-weight: 800;
 }
 
+.schedule-calendar-panel .calendar-cell {
+  min-height: 124px;
+  padding: 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.schedule-calendar-panel .calendar-cell:nth-child(7n + 1) {
+  border-left: 1px solid var(--line);
+}
+
+.schedule-calendar-panel .calendar-cell.muted {
+  background: #eef2f6;
+}
+
+.schedule-calendar-panel .day-number {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .calendar-event {
   display: block;
   width: 100%;

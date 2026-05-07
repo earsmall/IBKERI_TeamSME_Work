@@ -267,8 +267,9 @@ function normalizeMeetingPost(id, post) {
   const author = post.authorName || VALID_USERS.find((user) => user.id === post.authorId)?.name || "";
 
   return {
-    id,
     ...post,
+    id,
+    legacyId: post.id || "",
     dateValue,
     period,
     hour,
@@ -1768,7 +1769,6 @@ postForm.addEventListener("submit", async (event) => {
   }
 
   const post = {
-    id: String(Date.now()),
     date: String(formData.get("date")),
     dateValue: String(formData.get("date")),
     period: String(formData.get("period")),
