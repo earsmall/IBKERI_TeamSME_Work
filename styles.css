@@ -149,7 +149,8 @@ textarea:focus {
 .ghost-button,
 .post-form button,
 .work-form button,
-.schedule-form button {
+.schedule-form button,
+.memo-form button {
   min-height: 36px;
   border: 0;
   border-radius: 6px;
@@ -607,6 +608,23 @@ textarea:focus {
   line-height: 1.35;
 }
 
+.dashboard-title-button {
+  display: inline;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-title-button:hover {
+  text-decoration: underline;
+}
+
 .dashboard-meta {
   margin: 7px 0 0;
   color: #c7d4df;
@@ -659,13 +677,16 @@ textarea:focus {
 .work-form-panel,
 .work-list,
 .schedule-form-panel,
-.schedule-list {
+.schedule-list,
+.memo-form-panel,
+.memo-list {
   max-width: 1280px;
   margin-inline: auto;
 }
 
 .work-form,
-.schedule-form {
+.schedule-form,
+.memo-form {
   display: grid;
   grid-template-columns: 160px 220px 160px 180px;
   gap: 12px;
@@ -679,21 +700,25 @@ textarea:focus {
 }
 
 .work-form-panel h2,
-.schedule-form-panel h2 {
+.schedule-form-panel h2,
+.memo-form-panel h2 {
   margin: 0 0 10px;
   color: #fff;
   font-size: 18px;
 }
 
 .work-form label,
-.schedule-form label {
+.schedule-form label,
+.memo-form label {
   color: #40505f;
 }
 
 .work-form input,
 .work-form select,
 .schedule-form input,
-.schedule-form select {
+.schedule-form select,
+.memo-form input,
+.memo-form textarea {
   background: #fff;
 }
 
@@ -915,7 +940,9 @@ td:nth-child(5) {
 #workTable .work-delete-select-header,
 #workTable .delete-select-cell,
 #scheduleTable .schedule-delete-select-header,
-#scheduleTable .delete-select-cell {
+#scheduleTable .delete-select-cell,
+#memoTable .memo-delete-select-header,
+#memoTable .delete-select-cell {
   width: 42px;
   padding-inline: 8px;
   text-align: center;
@@ -1004,6 +1031,25 @@ td:nth-child(5) {
   width: 150px;
 }
 
+#memoTable {
+  min-width: 760px;
+}
+
+#memoTable th:nth-child(2),
+#memoTable td:nth-child(2) {
+  width: auto;
+}
+
+#memoTable th:nth-child(3),
+#memoTable td:nth-child(3) {
+  width: 180px;
+}
+
+#memoTable th:nth-child(4),
+#memoTable td:nth-child(4) {
+  width: 180px;
+}
+
 .action-cell {
   display: flex;
   gap: 6px;
@@ -1029,9 +1075,11 @@ td:nth-child(5) {
 .post-delete-checkbox,
 .work-delete-checkbox,
 .schedule-delete-checkbox,
+.memo-delete-checkbox,
 #selectAllPosts,
 #selectAllWorkItems,
-#selectAllSchedules {
+#selectAllSchedules,
+#selectAllMemos {
   width: 16px;
   height: 16px;
   min-height: 0;
@@ -1679,9 +1727,62 @@ td:nth-child(5) {
   font-size: 16px;
 }
 
+.work-updates {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.work-updates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.work-updates h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.work-update-form {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 72px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.work-update-form.hidden {
+  display: none;
+}
+
+.work-update-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.work-update-table {
+  min-width: 520px;
+}
+
+.work-update-table th,
+.work-update-table td {
+  padding: 10px 12px;
+}
+
+.work-update-table th:first-child,
+.work-update-table td:first-child {
+  width: 150px;
+}
+
 .markdown-body {
   font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   line-height: 1.7;
+}
+
+#memoDetailContent {
+  white-space: pre-wrap;
 }
 
 .markdown-body h3,

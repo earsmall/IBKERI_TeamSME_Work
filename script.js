@@ -13,6 +13,7 @@ const db = firebase.firestore();
 const meetingCollection = db.collection("meetingMinutes");
 const workCollection = db.collection("workStatus");
 const scheduleCollection = db.collection("schedules");
+const memoCollection = db.collection("memos");
 const adminRolesRef = db.collection("settings").doc("adminRoles");
 const passwordSettingsRef = db.collection("settings").doc("passwords");
 const userAccessRef = db.collection("settings").doc("userAccess");
@@ -98,6 +99,7 @@ const SCHEDULE_CATEGORY_OPTIONS = [
 let boardItems = [];
 let workItems = [];
 let scheduleItems = [];
+let memoItems = [];
 
 const loginView = document.querySelector("#loginView");
 const boardView = document.querySelector("#boardView");
@@ -122,6 +124,7 @@ const menuListButton = document.querySelector("#menuListButton");
 const menuCalendarButton = document.querySelector("#menuCalendarButton");
 const menuScheduleListButton = document.querySelector("#menuScheduleListButton");
 const menuScheduleCalendarButton = document.querySelector("#menuScheduleCalendarButton");
+const menuMemoListButton = document.querySelector("#menuMemoListButton");
 const boldButton = document.querySelector("#boldButton");
 const prevMonthButton = document.querySelector("#prevMonthButton");
 const nextMonthButton = document.querySelector("#nextMonthButton");
@@ -174,6 +177,26 @@ const scheduleCalendarGrid = document.querySelector("#scheduleCalendarGrid");
 const scheduleCalendarTitle = document.querySelector("#scheduleCalendarTitle");
 const prevScheduleMonthButton = document.querySelector("#prevScheduleMonthButton");
 const nextScheduleMonthButton = document.querySelector("#nextScheduleMonthButton");
+const memoFormPanel = document.querySelector("#memoFormPanel");
+const memoForm = document.querySelector("#memoForm");
+const memoFormTitle = document.querySelector("#memoFormTitle");
+const memoTitle = document.querySelector("#memoTitle");
+const memoContent = document.querySelector("#memoContent");
+const memoFormMessage = document.querySelector("#memoFormMessage");
+const cancelMemoButton = document.querySelector("#cancelMemoButton");
+const memoListPanel = document.querySelector("#memoListPanel");
+const memoRows = document.querySelector("#memoRows");
+const memoEmptyState = document.querySelector("#memoEmptyState");
+const memoDeleteSelectHeader = document.querySelector(".memo-delete-select-header");
+const selectAllMemos = document.querySelector("#selectAllMemos");
+const memoDetailPanel = document.querySelector("#memoDetailPanel");
+const deleteMemoButton = document.querySelector("#deleteMemoButton");
+const editMemoButton = document.querySelector("#editMemoButton");
+const backToMemoListButton = document.querySelector("#backToMemoListButton");
+const memoDetailDate = document.querySelector("#memoDetailDate");
+const memoDetailTitle = document.querySelector("#memoDetailTitle");
+const memoDetailAuthor = document.querySelector("#memoDetailAuthor");
+const memoDetailContent = document.querySelector("#memoDetailContent");
 const calendarPanel = document.querySelector("#calendarPanel");
 const adminPanel = document.querySelector("#adminPanel");
 const adminRows = document.querySelector("#adminRows");
@@ -193,6 +216,11 @@ const workDetailCategory = document.querySelector("#workDetailCategory");
 const workDetailStatus = document.querySelector("#workDetailStatus");
 const workDetailAssignees = document.querySelector("#workDetailAssignees");
 const workDetailAuthor = document.querySelector("#workDetailAuthor");
+const workUpdateForm = document.querySelector("#workUpdateForm");
+const workUpdateDate = document.querySelector("#workUpdateDate");
+const workUpdateContent = document.querySelector("#workUpdateContent");
+const workUpdateRows = document.querySelector("#workUpdateRows");
+const workUpdateEmpty = document.querySelector("#workUpdateEmpty");
 const searchInput = document.querySelector("#searchInput");
 const startDateFilter = document.querySelector("#startDateFilter");
 const endDateFilter = document.querySelector("#endDateFilter");
@@ -228,6 +256,7 @@ const cancelPasswordButton = document.querySelector("#cancelPasswordButton");
 let editingPostId = null;
 let editingWorkId = null;
 let editingScheduleId = null;
+let editingMemoId = null;
 let activeView = "work-dashboard";
 let currentCalendarDate = new Date();
 let currentScheduleCalendarDate = new Date();
@@ -236,6 +265,7 @@ let passwordHashMap = {};
 let disabledUserIds = [];
 let firestoreUnsubscribers = [];
 let pendingDeleteAction = null;
+let currentWorkDetailId = null;
 let currentBoardPage = 1;
 const BOARD_PAGE_SIZE = 20;
 
@@ -311,6 +341,13 @@ function normalizeWorkItem(id, item) {
   const assigneeIds = getAssigneeIds(item);
   const assigneeNames = Array.isArray(item.assigneeNames) ? item.assigneeNames : assigneeIds.map(getUserName).filter(Boolean);
   const authorId = item.authorId || "";
+  const updates = Array.isArray(item.updates)
+    ? item.updates.map((update) => ({
+      id: update.id || String(Date.now()),
+      date: normalizeDateValue(update.date || ""),
+      content: update.content || ""
+    }))
+    : [];
   return {
     id,
     startDate: normalizeDateValue(item.startDate || ""),
@@ -325,6 +362,7 @@ function normalizeWorkItem(id, item) {
     category: item.category || WORK_CATEGORY_OPTIONS[0],
     authorId,
     authorName: item.authorName || getUserName(authorId),
+    updates,
     createdAt: item.createdAt || ""
   };
 }
@@ -340,6 +378,19 @@ function normalizeScheduleItem(id, item) {
     authorId,
     authorName: item.authorName || getUserName(authorId),
     createdAt: item.createdAt || ""
+  };
+}
+
+function normalizeMemoItem(id, item) {
+  const authorId = item.authorId || "";
+  return {
+    id,
+    title: item.title || "",
+    content: item.content || "",
+    authorId,
+    authorName: item.authorName || getUserName(authorId),
+    createdAt: item.createdAt || "",
+    updatedAt: item.updatedAt || ""
   };
 }
 
@@ -453,6 +504,13 @@ function startFirestoreListeners() {
     renderScheduleCalendar();
   }, (error) => {
     console.error("Failed to load schedules.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(memoCollection, (snapshot) => {
+    memoItems = snapshot.docs.map((item) => normalizeMemoItem(item.id, item.data()));
+    renderMemoList();
+  }, (error) => {
+    console.error("Failed to load memos.", error);
   }));
 }
 
@@ -656,6 +714,29 @@ function fillScheduleForm(item) {
   scheduleDescription.value = item.description;
 }
 
+function setMemoFormOpen(isOpen) {
+  memoFormPanel.classList.toggle("hidden", !isOpen);
+  newPostButton.setAttribute("aria-expanded", String(isOpen));
+  newPostButton.textContent = isOpen ? "\uc791\uc131 \ub2eb\uae30" : "\uc0c8\ub85c \ub9cc\ub4e4\uae30";
+  memoFormTitle.textContent = editingMemoId ? "\uba54\ubaa8 \uc218\uc815" : "\uba54\ubaa8 \uc791\uc131";
+  if (isOpen) memoTitle.focus();
+}
+
+function clearMemoForm() {
+  editingMemoId = null;
+  memoForm.reset();
+  memoFormMessage.textContent = "";
+  memoFormTitle.textContent = "\uba54\ubaa8 \uc791\uc131";
+}
+
+function fillMemoForm(item) {
+  editingMemoId = item.id;
+  memoTitle.value = item.title;
+  memoContent.value = item.content;
+  memoFormMessage.textContent = "";
+  memoFormTitle.textContent = "\uba54\ubaa8 \uc218\uc815";
+}
+
 function hideMainPanels() {
   workDashboardPanel.classList.add("hidden");
   workListPanel.classList.add("hidden");
@@ -664,6 +745,9 @@ function hideMainPanels() {
   scheduleFormPanel.classList.add("hidden");
   scheduleListPanel.classList.add("hidden");
   scheduleCalendarPanel.classList.add("hidden");
+  memoFormPanel.classList.add("hidden");
+  memoListPanel.classList.add("hidden");
+  memoDetailPanel.classList.add("hidden");
   detailPanel.classList.add("hidden");
   workDetailPanel.classList.add("hidden");
   calendarPanel.classList.add("hidden");
@@ -678,10 +762,12 @@ function hideMainPanels() {
   deletePostButton.classList.add("hidden");
   editWorkButton.classList.add("hidden");
   deleteWorkButton.classList.add("hidden");
+  editMemoButton.classList.add("hidden");
+  deleteMemoButton.classList.add("hidden");
 }
 
 function setMenuActive(activeButton) {
-  [menuWorkDashboardButton, menuWorkListButton, menuListButton, menuCalendarButton, menuScheduleListButton, menuScheduleCalendarButton].forEach((button) => {
+  [menuWorkDashboardButton, menuWorkListButton, menuListButton, menuCalendarButton, menuScheduleListButton, menuScheduleCalendarButton, menuMemoListButton].forEach((button) => {
     button.classList.toggle("active", button === activeButton);
   });
 }
@@ -744,6 +830,20 @@ function showScheduleCalendarView() {
   renderScheduleCalendar();
 }
 
+function showMemoListView() {
+  const user = getCurrentUser();
+  activeView = "memo-list";
+  hideMainPanels();
+  viewHeading.textContent = "\uba54\ubaa8 - \ubaa9\ub85d";
+  viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
+  memoListPanel.classList.remove("hidden");
+  newPostButton.classList.remove("hidden");
+  deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
+  setMenuActive(menuMemoListButton);
+  renderMemoList();
+}
+
 function showAdminView() {
   const user = getCurrentUser();
   if (!isAdminUser(user)) return;
@@ -788,15 +888,20 @@ function showDetailView(postId) {
 function showWorkDetailView(itemId) {
   const item = workItems.find((workItem) => workItem.id === itemId);
   if (!item) return;
+  currentWorkDetailId = item.id;
+  const canEdit = canEditWorkItem(item);
 
   setWorkFormOpen(false);
   hideMainPanels();
   viewHeading.classList.add("hidden");
   workDetailPanel.classList.remove("hidden");
-  editWorkButton.classList.toggle("hidden", !canEditWorkItem(item));
+  editWorkButton.classList.toggle("hidden", !canEdit);
   editWorkButton.dataset.workId = item.id;
   deleteWorkButton.classList.toggle("hidden", !canDeleteWorkItem(item));
   deleteWorkButton.dataset.workId = item.id;
+  workUpdateForm.classList.toggle("hidden", !canEdit);
+  workUpdateForm.reset();
+  workUpdateDate.value = getLocalDateValue(new Date());
 
   workDetailPeriod.textContent = `${formatShortDate(item.startDate)} - ${item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate)}`;
   workDetailTitle.textContent = item.title;
@@ -804,7 +909,29 @@ function showWorkDetailView(itemId) {
   workDetailStatus.replaceChildren(makeStatusTag(item.status));
   workDetailAssignees.textContent = getAssigneeNames(item).join(", ");
   workDetailAuthor.textContent = item.authorName || "";
+  renderWorkUpdates(item);
   backToWorkListButton.focus();
+}
+
+function showMemoDetailView(itemId) {
+  const item = memoItems.find((memo) => memo.id === itemId);
+  if (!item) return;
+  const canManage = canManageMemoItem(item);
+
+  setMemoFormOpen(false);
+  hideMainPanels();
+  viewHeading.classList.add("hidden");
+  memoDetailPanel.classList.remove("hidden");
+  editMemoButton.classList.toggle("hidden", !canManage);
+  editMemoButton.dataset.memoId = item.id;
+  deleteMemoButton.classList.toggle("hidden", !canManage);
+  deleteMemoButton.dataset.memoId = item.id;
+
+  memoDetailDate.textContent = formatShortDate((item.createdAt || "").slice(0, 10));
+  memoDetailTitle.textContent = item.title;
+  memoDetailAuthor.textContent = item.authorName || "";
+  memoDetailContent.textContent = item.content || "";
+  backToMemoListButton.focus();
 }
 
 function getPostDate(post) {
@@ -971,6 +1098,10 @@ function getSelectedScheduleIds() {
   return Array.from(scheduleRows.querySelectorAll(".schedule-delete-checkbox:checked")).map((checkbox) => checkbox.value);
 }
 
+function getSelectedMemoIds() {
+  return Array.from(memoRows.querySelectorAll(".memo-delete-checkbox:checked")).map((checkbox) => checkbox.value);
+}
+
 function getActiveBulkDeleteTarget() {
   if (activeView === "work-list") {
     return { collectionName: "workStatus", selectedIds: getSelectedWorkIds() };
@@ -978,6 +1109,10 @@ function getActiveBulkDeleteTarget() {
 
   if (activeView === "schedule-list") {
     return { collectionName: "schedules", selectedIds: getSelectedScheduleIds() };
+  }
+
+  if (activeView === "memo-list") {
+    return { collectionName: "memos", selectedIds: getSelectedMemoIds() };
   }
 
   return { collectionName: "meetingMinutes", selectedIds: getSelectedPostIds() };
@@ -1004,6 +1139,12 @@ function refreshAfterDelete(collectionName, selectedIds) {
     scheduleItems = scheduleItems.filter((item) => !deleted.has(item.id));
     renderScheduleList();
     renderScheduleCalendar();
+    return;
+  }
+
+  if (collectionName === "memos") {
+    memoItems = memoItems.filter((item) => !deleted.has(item.id));
+    renderMemoList();
   }
 }
 
@@ -1048,6 +1189,7 @@ async function deleteSelectedPosts(selectedIds, collectionName) {
     selectAllPosts.checked = false;
     selectAllWorkItems.checked = false;
     selectAllSchedules.checked = false;
+    selectAllMemos.checked = false;
   } catch (error) {
     console.error("Failed to delete selected items.", error);
     window.alert("\uc0ad\uc81c\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. Firebase \uc5f0\uacb0 \ub610\ub294 \uad8c\ud55c\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
@@ -1250,6 +1392,24 @@ function getWorkCategoryClass(category) {
   return classMap[category] || "purple";
 }
 
+function renderWorkUpdates(item) {
+  const updates = [...(item.updates || [])].sort((a, b) => (normalizeDateValue(b.date) || "").localeCompare(normalizeDateValue(a.date) || ""));
+  workUpdateRows.replaceChildren();
+
+  updates.forEach((update) => {
+    const row = document.createElement("tr");
+    const date = document.createElement("td");
+    const content = document.createElement("td");
+
+    date.textContent = formatShortDate(update.date);
+    content.textContent = update.content;
+    row.append(date, content);
+    workUpdateRows.append(row);
+  });
+
+  workUpdateEmpty.classList.toggle("hidden", updates.length > 0);
+}
+
 function getScheduleCategoryClass(category) {
   const classMap = {
     "\ud589\uc0ac": "blue",
@@ -1292,7 +1452,12 @@ function renderWorkDashboard() {
       card.className = "dashboard-work-card";
 
       const title = document.createElement("h3");
-      title.textContent = item.title;
+      const titleButton = document.createElement("button");
+      titleButton.className = "dashboard-title-button";
+      titleButton.type = "button";
+      titleButton.textContent = item.title;
+      titleButton.addEventListener("click", () => showWorkDetailView(item.id));
+      title.append(titleButton);
 
       const category = document.createElement("p");
       category.className = `dashboard-meta category ${getWorkCategoryClass(item.category)}`;
@@ -1608,6 +1773,11 @@ function canManageScheduleItem(item) {
   return isAdminUser(user) || item.authorId === user?.id;
 }
 
+function canManageMemoItem(item) {
+  const user = getCurrentUser();
+  return isAdminUser(user) || item.authorId === user?.id;
+}
+
 function renderScheduleList() {
   if (!scheduleRows) return;
   const sortedItems = [...scheduleItems].sort((a, b) => (normalizeDateValue(b.startDate) || "").localeCompare(normalizeDateValue(a.startDate) || ""));
@@ -1673,6 +1843,52 @@ function renderScheduleList() {
   });
 
   scheduleEmptyState.classList.toggle("hidden", sortedItems.length > 0);
+}
+
+function renderMemoList() {
+  if (!memoRows) return;
+  const sortedItems = [...memoItems].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  const canDelete = isAdminUser(getCurrentUser());
+  memoDeleteSelectHeader.classList.toggle("hidden", !canDelete);
+  selectAllMemos.checked = false;
+  memoRows.replaceChildren();
+
+  sortedItems.forEach((item) => {
+    const row = document.createElement("tr");
+    row.className = "black";
+
+    if (canDelete) {
+      const selector = document.createElement("td");
+      selector.className = "delete-select-cell";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "memo-delete-checkbox";
+      checkbox.value = item.id;
+      checkbox.setAttribute("aria-label", `${item.title} \uc120\ud0dd`);
+      selector.append(checkbox);
+      row.append(selector);
+    }
+
+    const title = document.createElement("td");
+    title.className = "title-cell";
+    const titleButton = document.createElement("button");
+    titleButton.className = "link-button";
+    titleButton.type = "button";
+    titleButton.textContent = item.title;
+    titleButton.addEventListener("click", () => showMemoDetailView(item.id));
+    title.append(titleButton);
+
+    const author = document.createElement("td");
+    author.textContent = item.authorName || "";
+
+    const created = document.createElement("td");
+    created.textContent = formatShortDate((item.createdAt || "").slice(0, 10));
+
+    row.append(title, author, created);
+    memoRows.append(row);
+  });
+
+  memoEmptyState.classList.toggle("hidden", sortedItems.length > 0);
 }
 
 function renderScheduleCalendar() {
@@ -1863,6 +2079,7 @@ workForm.addEventListener("submit", async (event) => {
         assigneeNames: workItem.assigneeNames,
         status: workItem.status,
         category: workItem.category,
+        updates: existingItem.updates || [],
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } else {
@@ -1877,6 +2094,72 @@ workForm.addEventListener("submit", async (event) => {
   clearWorkForm();
   setWorkFormOpen(false);
   showWorkListView();
+});
+
+workUpdateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const item = workItems.find((workItem) => workItem.id === currentWorkDetailId);
+  if (!item || !canEditWorkItem(item)) return;
+
+  const formData = new FormData(workUpdateForm);
+  const update = {
+    id: String(Date.now()),
+    date: normalizeDateValue(String(formData.get("date"))),
+    content: String(formData.get("content")).trim()
+  };
+  if (!update.date || !update.content) return;
+
+  const updates = [...(item.updates || []), update];
+
+  try {
+    await setDoc(doc(db, "workStatus", item.id), {
+      updates,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    item.updates = updates;
+    renderWorkUpdates(item);
+    workUpdateForm.reset();
+    workUpdateDate.value = getLocalDateValue(new Date());
+    workUpdateContent.focus();
+  } catch (error) {
+    console.error("Failed to save work update.", error);
+    window.alert("\uc9c4\ud589 \ud604\ud669\uc744 \uc800\uc7a5\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. Firebase \uc5f0\uacb0 \ub610\ub294 \uad8c\ud55c\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
+  }
+});
+
+memoForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const user = getCurrentUser();
+  const formData = new FormData(memoForm);
+  const memo = {
+    title: String(formData.get("title")).trim(),
+    content: String(formData.get("content")).trim(),
+    authorId: user?.id || "",
+    authorName: user?.name || "",
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    if (editingMemoId) {
+      const existingMemo = memoItems.find((item) => item.id === editingMemoId);
+      if (!existingMemo || !canManageMemoItem(existingMemo)) return;
+      await setDoc(doc(db, "memos", editingMemoId), {
+        title: memo.title,
+        content: memo.content,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } else {
+      await addDoc(memoCollection, memo);
+    }
+  } catch (error) {
+    console.error("Failed to save memo.", error);
+    memoFormMessage.textContent = "\uc800\uc7a5 \uad8c\ud55c \ub610\ub294 Firebase \uc5f0\uacb0 \uc0c1\ud0dc\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.";
+    return;
+  }
+
+  clearMemoForm();
+  setMemoFormOpen(false);
+  showMemoListView();
 });
 
 scheduleForm.addEventListener("submit", async (event) => {
@@ -1919,6 +2202,16 @@ scheduleForm.addEventListener("submit", async (event) => {
 });
 
 newPostButton.addEventListener("click", () => {
+  if (activeView === "memo-list") {
+    if (memoFormPanel.classList.contains("hidden")) {
+      clearMemoForm();
+      setMemoFormOpen(true);
+      return;
+    }
+    setMemoFormOpen(false);
+    return;
+  }
+
   if (activeView === "schedule-list" || activeView === "schedule-calendar") {
     if (scheduleFormPanel.classList.contains("hidden")) {
       clearScheduleForm();
@@ -1960,6 +2253,11 @@ cancelWorkButton.addEventListener("click", () => {
 cancelScheduleButton.addEventListener("click", () => {
   clearScheduleForm();
   setScheduleFormOpen(false);
+});
+
+cancelMemoButton.addEventListener("click", () => {
+  clearMemoForm();
+  setMemoFormOpen(false);
 });
 
 workNoEndDate.addEventListener("change", () => {
@@ -2015,9 +2313,17 @@ selectAllSchedules.addEventListener("change", () => {
   });
 });
 
+selectAllMemos.addEventListener("change", () => {
+  memoRows.querySelectorAll(".memo-delete-checkbox").forEach((checkbox) => {
+    checkbox.checked = selectAllMemos.checked;
+  });
+});
+
 backToListButton.addEventListener("click", showListView);
 
 backToWorkListButton.addEventListener("click", showWorkListView);
+
+backToMemoListButton.addEventListener("click", showMemoListView);
 
 deletePostButton.addEventListener("click", () => {
   const post = boardItems.find((item) => item.id === deletePostButton.dataset.postId);
@@ -2050,6 +2356,25 @@ deleteWorkButton.addEventListener("click", () => {
   });
 });
 
+editMemoButton.addEventListener("click", () => {
+  const item = memoItems.find((memo) => memo.id === editMemoButton.dataset.memoId);
+  if (!item || !canManageMemoItem(item)) return;
+
+  showMemoListView();
+  fillMemoForm(item);
+  setMemoFormOpen(true);
+});
+
+deleteMemoButton.addEventListener("click", () => {
+  const item = memoItems.find((memo) => memo.id === deleteMemoButton.dataset.memoId);
+  if (!item || !canManageMemoItem(item)) return;
+
+  requestDelete(async () => {
+    await deleteDoc(doc(db, "memos", item.id));
+    showMemoListView();
+  });
+});
+
 menuWorkDashboardButton.addEventListener("click", showWorkDashboardView);
 
 menuWorkListButton.addEventListener("click", showWorkListView);
@@ -2061,6 +2386,8 @@ menuCalendarButton.addEventListener("click", showCalendarView);
 menuScheduleListButton.addEventListener("click", showScheduleListView);
 
 menuScheduleCalendarButton.addEventListener("click", showScheduleCalendarView);
+
+menuMemoListButton.addEventListener("click", showMemoListView);
 
 adminPageButton.addEventListener("click", showAdminView);
 

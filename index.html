@@ -56,6 +56,10 @@
             <button class="menu-item" id="menuScheduleListButton" type="button">&#8226; &#47785;&#47197;</button>
             <button class="menu-item" id="menuScheduleCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
+          <div class="menu-group">
+            <div class="menu-title">4. &#47700;&#47784;</div>
+            <button class="menu-item" id="menuMemoListButton" type="button">&#8226; &#47785;&#47197;</button>
+          </div>
         </aside>
 
         <div class="workspace-main">
@@ -220,6 +224,66 @@
           <span>Sat</span>
         </div>
         <div class="calendar-grid" id="scheduleCalendarGrid"></div>
+      </section>
+
+      <section class="memo-form-panel hidden" id="memoFormPanel" aria-labelledby="memoFormTitle">
+        <h2 id="memoFormTitle">&#47700;&#47784; &#51089;&#49457;</h2>
+        <form class="memo-form" id="memoForm">
+          <div>
+            <label for="memoTitle">&#51228;&#47785;</label>
+            <input id="memoTitle" name="title" type="text" required>
+          </div>
+          <div class="wide-field">
+            <label for="memoContent">&#45236;&#50857;</label>
+            <textarea id="memoContent" name="content" rows="8" required></textarea>
+          </div>
+          <p class="form-message" id="memoFormMessage" role="status"></p>
+          <div class="form-actions">
+            <button class="secondary-button" id="cancelMemoButton" type="button">&#52712;&#49548;</button>
+            <button type="submit">&#46321;&#47197;</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="memo-list hidden" id="memoListPanel">
+        <section class="table-wrap" aria-label="memo list">
+          <table id="memoTable">
+            <thead>
+              <tr>
+                <th class="memo-delete-select-header hidden" scope="col">
+                  <input id="selectAllMemos" type="checkbox" aria-label="&#47700;&#47784; &#51204;&#52404; &#49440;&#53469;">
+                </th>
+                <th scope="col">&#51228;&#47785;</th>
+                <th scope="col">&#51089;&#49457;&#51088;</th>
+                <th scope="col">&#51089;&#49457;&#45216;&#51676;</th>
+              </tr>
+            </thead>
+            <tbody id="memoRows"></tbody>
+          </table>
+          <p class="empty-state hidden" id="memoEmptyState">&#46321;&#47197;&#46108; &#47700;&#47784;&#44032; &#50630;&#49845;&#45768;&#45796;.</p>
+        </section>
+      </section>
+
+      <section class="detail-panel hidden" id="memoDetailPanel" aria-labelledby="memoDetailTitle">
+        <div class="detail-top">
+          <button class="danger-button hidden" id="deleteMemoButton" type="button">&#49325;&#51228;</button>
+          <button class="primary-button hidden" id="editMemoButton" type="button">&#49688;&#51221;</button>
+          <button class="ghost-button" id="backToMemoListButton" type="button">&#47785;&#47197;&#48372;&#44592;</button>
+        </div>
+        <article class="detail-card">
+          <p class="detail-date" id="memoDetailDate"></p>
+          <h2 id="memoDetailTitle"></h2>
+          <dl class="detail-meta">
+            <div>
+              <dt>&#51089;&#49457;&#51088;</dt>
+              <dd id="memoDetailAuthor"></dd>
+            </div>
+          </dl>
+          <section class="detail-content" aria-label="memo content">
+            <h3>&#45236;&#50857;</h3>
+            <div id="memoDetailContent" class="markdown-body"></div>
+          </section>
+        </article>
       </section>
 
       <section class="controls hidden" aria-label="board filters">
@@ -426,6 +490,28 @@
               <dd id="workDetailAuthor"></dd>
             </div>
           </dl>
+          <section class="work-updates" aria-label="work progress updates">
+            <div class="work-updates-header">
+              <h3>&#51652;&#54665; &#54788;&#54889;</h3>
+            </div>
+            <form class="work-update-form hidden" id="workUpdateForm">
+              <input id="workUpdateDate" name="date" type="date" required>
+              <input id="workUpdateContent" name="content" type="text" placeholder="&#50629;&#47924; &#45236;&#50857;" required>
+              <button class="primary-button" type="submit">&#52628;&#44032;</button>
+            </form>
+            <div class="work-update-table-wrap">
+              <table class="work-update-table">
+                <thead>
+                  <tr>
+                    <th scope="col">&#45216;&#51676;</th>
+                    <th scope="col">&#50629;&#47924; &#45236;&#50857;</th>
+                  </tr>
+                </thead>
+                <tbody id="workUpdateRows"></tbody>
+              </table>
+              <p class="empty-state hidden" id="workUpdateEmpty">&#46321;&#47197;&#46108; &#51652;&#54665; &#54788;&#54889;&#51060; &#50630;&#49845;&#45768;&#45796;.</p>
+            </div>
+          </section>
         </article>
       </section>
 
