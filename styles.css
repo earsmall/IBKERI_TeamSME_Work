@@ -585,6 +585,26 @@ textarea:focus {
   background: #7652a8;
 }
 
+.dashboard-meta.category.red {
+  background: #b6575d;
+}
+
+.dashboard-meta.category.green {
+  background: #3f8a62;
+}
+
+.dashboard-meta.category.blue {
+  background: #3f76b5;
+}
+
+.dashboard-meta.category.yellow {
+  background: #9a7a2e;
+}
+
+.dashboard-meta.category.purple {
+  background: #7652a8;
+}
+
 .dashboard-meta.period {
   color: #e1edf7;
 }
@@ -1179,6 +1199,32 @@ td:nth-child(5) {
   gap: 8px;
 }
 
+.password-card {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.password-form {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.password-form label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.password-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0f223a;
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
 .calendar-panel {
   margin-top: 12px;
   padding: 16px;
@@ -1251,6 +1297,11 @@ td:nth-child(5) {
 
 .admin-table tr:last-child td {
   border-bottom: 0;
+}
+
+.admin-table tr.disabled-user-row td {
+  color: #7f8a96;
+  background: #102b44;
 }
 
 .admin-table select {

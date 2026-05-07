@@ -17,6 +17,8 @@
         <form class="login-form" id="loginForm">
           <label for="userId">&#49324;&#48264;</label>
           <input id="userId" name="userId" type="text" autocomplete="username" placeholder="43222" required>
+          <label for="userPassword">&#48708;&#48128;&#48264;&#54840;</label>
+          <input id="userPassword" name="password" type="password" autocomplete="current-password" required>
 
           <p class="login-error" id="loginError" role="alert"></p>
           <button type="submit">&#47196;&#44536;&#51064;</button>
@@ -34,6 +36,7 @@
           <span id="loginBadge" class="login-badge"></span>
           <button class="primary-button" id="newPostButton" type="button" aria-expanded="false" aria-controls="postPanel">&#49352;&#47196; &#47564;&#46308;&#44592;</button>
           <button class="danger-button hidden" id="deleteSelectedButton" type="button">&#49325;&#51228;</button>
+          <button class="ghost-button hidden" id="changePasswordButton" type="button">&#48708;&#48128;&#48264;&#54840; &#48320;&#44221;</button>
           <button class="ghost-button" id="logoutButton" type="button">&#47196;&#44536;&#50500;&#50883;</button>
           <button class="ghost-button hidden" id="adminPageButton" type="button">&#44288;&#47532;&#51088; &#54168;&#51060;&#51648;</button>
         </div>
@@ -363,6 +366,7 @@
 
       <section class="detail-panel hidden" id="detailPanel" aria-labelledby="detailTitle">
         <div class="detail-top">
+          <button class="danger-button hidden" id="deletePostButton" type="button">&#49325;&#51228;</button>
           <button class="primary-button hidden" id="editPostButton" type="button">&#49688;&#51221;</button>
           <button class="ghost-button" id="backToListButton" type="button">&#47785;&#47197;&#48372;&#44592;</button>
         </div>
@@ -394,13 +398,43 @@
         </article>
       </section>
 
+      <section class="detail-panel hidden" id="workDetailPanel" aria-labelledby="workDetailTitle">
+        <div class="detail-top">
+          <button class="danger-button hidden" id="deleteWorkButton" type="button">&#49325;&#51228;</button>
+          <button class="primary-button hidden" id="editWorkButton" type="button">&#49688;&#51221;</button>
+          <button class="ghost-button" id="backToWorkListButton" type="button">&#47785;&#47197;&#48372;&#44592;</button>
+        </div>
+        <article class="detail-card">
+          <p class="detail-date" id="workDetailPeriod"></p>
+          <h2 id="workDetailTitle"></h2>
+          <dl class="detail-meta">
+            <div>
+              <dt>&#44396;&#48516;</dt>
+              <dd id="workDetailCategory"></dd>
+            </div>
+            <div>
+              <dt>&#49345;&#53468;</dt>
+              <dd id="workDetailStatus"></dd>
+            </div>
+            <div>
+              <dt>&#45812;&#45817;&#51088;</dt>
+              <dd id="workDetailAssignees"></dd>
+            </div>
+            <div>
+              <dt>&#51089;&#49457;&#51088;</dt>
+              <dd id="workDetailAuthor"></dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
       <section class="admin-panel hidden" id="adminPanel" aria-label="admin page">
         <div class="admin-card">
           <div class="admin-card-header">
             <h2>&#44288;&#47532;&#51088; &#44428;&#54620; &#49444;&#51221;</h2>
             <button class="primary-button" id="saveAdminRolesButton" type="button">&#51200;&#51109;</button>
           </div>
-          <p class="admin-help">&#54016;&#50896;&#48324; &#44288;&#47532;&#51088; &#44428;&#54620;&#51012; &#49444;&#51221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;. &#48376;&#51064;&#51032; &#44428;&#54620;&#46020; &#48320;&#44221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;.</p>
+          <p class="admin-help">&#54016;&#50896;&#48324; &#44288;&#47532;&#51088; &#44428;&#54620;&#44284; &#47196;&#44536;&#51064; &#44428;&#54620;&#51012; &#49444;&#51221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;. &#49325;&#51228;&#47196; &#48320;&#44221;&#54620; &#49324;&#50857;&#51088;&#45716; &#47196;&#44536;&#51064;&#54624; &#49688; &#50630;&#49845;&#45768;&#45796;.</p>
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
@@ -408,6 +442,7 @@
                   <th scope="col">&#49324;&#48264;</th>
                   <th scope="col">&#51060;&#47492;</th>
                   <th scope="col">&#44288;&#47532;&#51088; &#44428;&#54620;</th>
+                  <th scope="col">&#47196;&#44536;&#51064; &#44428;&#54620;</th>
                 </tr>
               </thead>
               <tbody id="adminRows"></tbody>
@@ -419,11 +454,29 @@
       <div class="confirm-modal hidden" id="deleteConfirmModal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
         <div class="confirm-card">
           <h2 id="deleteConfirmTitle">&#49325;&#51228;&#54616;&#49884;&#44192;&#49845;&#45768;&#44620;?</h2>
-          <p>&#49440;&#53469;&#54620; &#54924;&#51032;&#47197;&#51008; &#49325;&#51228; &#54980; &#46104;&#46028;&#47540; &#49688; &#50630;&#49845;&#45768;&#45796;.</p>
+          <p>&#49440;&#53469;&#54620; &#54637;&#47785;&#51008; &#49325;&#51228; &#54980; &#46104;&#46028;&#47540; &#49688; &#50630;&#49845;&#45768;&#45796;.</p>
           <div class="confirm-actions">
             <button class="danger-button" id="confirmDeleteYes" type="button">Yes</button>
             <button class="ghost-button" id="confirmDeleteNo" type="button">No</button>
           </div>
+        </div>
+      </div>
+      <div class="confirm-modal hidden" id="passwordModal" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+        <div class="confirm-card password-card">
+          <h2 id="passwordModalTitle">&#48708;&#48128;&#48264;&#54840; &#48320;&#44221;</h2>
+          <form class="password-form" id="passwordForm">
+            <label for="currentPassword">&#54788;&#51116; &#48708;&#48128;&#48264;&#54840;</label>
+            <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required>
+            <label for="newPassword">&#49352; &#48708;&#48128;&#48264;&#54840;</label>
+            <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required>
+            <label for="confirmPassword">&#49352; &#48708;&#48128;&#48264;&#54840; &#54869;&#51064;</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required>
+            <p class="form-message" id="passwordMessage"></p>
+            <div class="confirm-actions">
+              <button class="primary-button" type="submit">&#51200;&#51109;</button>
+              <button class="ghost-button" id="cancelPasswordButton" type="button">&#52712;&#49548;</button>
+            </div>
+          </form>
         </div>
       </div>
         </div>

@@ -14,6 +14,8 @@ const meetingCollection = db.collection("meetingMinutes");
 const workCollection = db.collection("workStatus");
 const scheduleCollection = db.collection("schedules");
 const adminRolesRef = db.collection("settings").doc("adminRoles");
+const passwordSettingsRef = db.collection("settings").doc("passwords");
+const userAccessRef = db.collection("settings").doc("userAccess");
 
 function doc(database, collectionName, id) {
   return database.collection(collectionName).doc(id);
@@ -31,6 +33,10 @@ function deleteDoc(documentRef) {
   return documentRef.delete();
 }
 
+function getDoc(documentRef) {
+  return documentRef.get();
+}
+
 function onSnapshot(reference, onNext, onError) {
   return reference.onSnapshot(onNext, onError);
 }
@@ -40,7 +46,12 @@ const ko = {
   choi: "\ucd5c\uc815\ud6c8",
   loggedIn: "\ub85c\uadf8\uc778 \uc911",
   badLogin: "\uc0ac\ubc88\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.",
+  loginDisabled: "\ub85c\uadf8\uc778 \uad8c\ud55c\uc774 \uc81c\uac70\ub41c \uc0ac\uc6a9\uc790\uc785\ub2c8\ub2e4.",
+  badPassword: "\ube44\ubc00\ubc88\ud638\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.",
   authFailed: "\uc778\uc99d \uc5f0\uacb0\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.",
+  passwordChanged: "\ube44\ubc00\ubc88\ud638\uac00 \ubcc0\uacbd\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
+  passwordMismatch: "\uc0c8 \ube44\ubc00\ubc88\ud638\uac00 \uc11c\ub85c \ub2e4\ub985\ub2c8\ub2e4.",
+  passwordTooShort: "\uc0c8 \ube44\ubc00\ubc88\ud638\ub294 4\uc790 \uc774\uc0c1\uc73c\ub85c \uc785\ub825\ud574\uc8fc\uc138\uc694.",
   saved: "\uac8c\uc2dc\uae00\uc774 \ub4f1\ub85d\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
   participantRequired: "\ucc38\uc5ec\uc790\ub97c 1\uba85 \uc774\uc0c1 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.",
   allLab: "\uc5f0\uad6c\uc18c \uc804\uccb4",
@@ -56,7 +67,8 @@ const VALID_USERS = [
   { id: "25360", name: "\ub0a8\uad81\uc124", role: "member" },
   { id: "44975", name: "\uc624\uc815\ud0dd", role: "member" },
   { id: "43343", name: "\uae40\ub0a8\ud76c", role: "member" },
-  { id: "42128", name: "\uae40\uc218\uc601", role: "member" }
+  { id: "42128", name: "\uae40\uc218\uc601", role: "member" },
+  { id: "22194", name: "\uc2ec\ud615\uc900", role: "member" }
 ];
 
 const TYPE_OPTIONS = [ko.underHead, ko.underDirector, ko.underTeamLead];
@@ -94,11 +106,13 @@ const loginError = document.querySelector("#loginError");
 const loginBadge = document.querySelector("#loginBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const adminPageButton = document.querySelector("#adminPageButton");
+const changePasswordButton = document.querySelector("#changePasswordButton");
 const newPostButton = document.querySelector("#newPostButton");
 const deleteSelectedButton = document.querySelector("#deleteSelectedButton");
 const cancelPostButton = document.querySelector("#cancelPostButton");
 const backToListButton = document.querySelector("#backToListButton");
 const editPostButton = document.querySelector("#editPostButton");
+const deletePostButton = document.querySelector("#deletePostButton");
 const menuWorkDashboardButton = document.querySelector("#menuWorkDashboardButton");
 const menuWorkListButton = document.querySelector("#menuWorkListButton");
 const menuListButton = document.querySelector("#menuListButton");
@@ -166,6 +180,16 @@ const calendarGrid = document.querySelector("#calendarGrid");
 const calendarTitle = document.querySelector("#calendarTitle");
 const viewHeading = document.querySelector("#viewHeading");
 const detailPanel = document.querySelector("#detailPanel");
+const workDetailPanel = document.querySelector("#workDetailPanel");
+const deleteWorkButton = document.querySelector("#deleteWorkButton");
+const editWorkButton = document.querySelector("#editWorkButton");
+const backToWorkListButton = document.querySelector("#backToWorkListButton");
+const workDetailPeriod = document.querySelector("#workDetailPeriod");
+const workDetailTitle = document.querySelector("#workDetailTitle");
+const workDetailCategory = document.querySelector("#workDetailCategory");
+const workDetailStatus = document.querySelector("#workDetailStatus");
+const workDetailAssignees = document.querySelector("#workDetailAssignees");
+const workDetailAuthor = document.querySelector("#workDetailAuthor");
 const searchInput = document.querySelector("#searchInput");
 const startDateFilter = document.querySelector("#startDateFilter");
 const endDateFilter = document.querySelector("#endDateFilter");
@@ -193,6 +217,10 @@ const detailContent = document.querySelector("#detailContent");
 const deleteConfirmModal = document.querySelector("#deleteConfirmModal");
 const confirmDeleteYes = document.querySelector("#confirmDeleteYes");
 const confirmDeleteNo = document.querySelector("#confirmDeleteNo");
+const passwordModal = document.querySelector("#passwordModal");
+const passwordForm = document.querySelector("#passwordForm");
+const passwordMessage = document.querySelector("#passwordMessage");
+const cancelPasswordButton = document.querySelector("#cancelPasswordButton");
 
 let editingPostId = null;
 let editingWorkId = null;
@@ -201,7 +229,10 @@ let activeView = "work-dashboard";
 let currentCalendarDate = new Date();
 let currentScheduleCalendarDate = new Date();
 let adminRoleMap = {};
+let passwordHashMap = {};
+let disabledUserIds = [];
 let firestoreUnsubscribers = [];
+let pendingDeleteAction = null;
 let currentBoardPage = 1;
 const BOARD_PAGE_SIZE = 20;
 
@@ -254,6 +285,14 @@ function getUserName(userId) {
   return VALID_USERS.find((user) => user.id === userId)?.name || "";
 }
 
+function isUserDisabled(userId) {
+  return disabledUserIds.includes(userId);
+}
+
+function getActiveUsers() {
+  return VALID_USERS.filter((user) => user.id !== "admin" && !isUserDisabled(user.id));
+}
+
 function getAssigneeIds(item) {
   if (Array.isArray(item.assigneeIds)) return item.assigneeIds;
   return item.assigneeId ? [item.assigneeId] : [];
@@ -267,6 +306,7 @@ function getAssigneeNames(item) {
 function normalizeWorkItem(id, item) {
   const assigneeIds = getAssigneeIds(item);
   const assigneeNames = Array.isArray(item.assigneeNames) ? item.assigneeNames : assigneeIds.map(getUserName).filter(Boolean);
+  const authorId = item.authorId || "";
   return {
     id,
     startDate: normalizeDateValue(item.startDate || ""),
@@ -279,6 +319,8 @@ function normalizeWorkItem(id, item) {
     assigneeNames,
     status: item.status || WORK_STATUS_OPTIONS[0],
     category: item.category || WORK_CATEGORY_OPTIONS[0],
+    authorId,
+    authorName: item.authorName || getUserName(authorId),
     createdAt: item.createdAt || ""
   };
 }
@@ -295,6 +337,41 @@ function normalizeScheduleItem(id, item) {
     authorName: item.authorName || getUserName(authorId),
     createdAt: item.createdAt || ""
   };
+}
+
+async function hashPassword(password) {
+  const bytes = new TextEncoder().encode(password);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function loadPasswordSettings() {
+  const snapshot = await getDoc(passwordSettingsRef);
+  passwordHashMap = snapshot.exists ? snapshot.data().hashes || {} : {};
+  return passwordHashMap;
+}
+
+async function loadUserAccessSettings() {
+  const snapshot = await getDoc(userAccessRef);
+  disabledUserIds = snapshot.exists ? snapshot.data().disabledUserIds || [] : [];
+  return disabledUserIds;
+}
+
+async function isValidPassword(userId, password) {
+  const storedHash = passwordHashMap[userId];
+  if (!storedHash) return password === userId;
+  return storedHash === await hashPassword(password);
+}
+
+async function saveUserPassword(userId, password) {
+  const passwordHash = await hashPassword(password);
+  passwordHashMap = { ...passwordHashMap, [userId]: passwordHash };
+  await setDoc(passwordSettingsRef, {
+    hashes: passwordHashMap,
+    updatedAt: new Date().toISOString()
+  }, { merge: true });
 }
 
 async function ensureAnonymousAuth() {
@@ -333,6 +410,29 @@ function startFirestoreListeners() {
     renderAdminRows();
   }, (error) => {
     console.error("관리자 권한 정보를 불러오지 못했습니다.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(passwordSettingsRef, (snapshot) => {
+    passwordHashMap = snapshot.exists ? snapshot.data().hashes || {} : {};
+  }, (error) => {
+    console.error("Failed to load password settings.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(userAccessRef, (snapshot) => {
+    disabledUserIds = snapshot.exists ? snapshot.data().disabledUserIds || [] : [];
+    const user = getCurrentUser();
+    if (user && isUserDisabled(user.id)) {
+      sessionStorage.removeItem("currentUser");
+      stopFirestoreListeners();
+      auth.signOut();
+      loginForm.reset();
+      setView(null);
+      return;
+    }
+    renderAdminRows();
+    renderUserChoices();
+  }, (error) => {
+    console.error("Failed to load user access settings.", error);
   }));
 
   firestoreUnsubscribers.push(onSnapshot(workCollection, (snapshot) => {
@@ -385,6 +485,7 @@ function setView(user) {
     const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
+    changePasswordButton.classList.remove("hidden");
     deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
     postAuthor.value = user.name;
     setDefaultDate();
@@ -398,6 +499,7 @@ function setView(user) {
   boardView.classList.add("hidden");
   loginBadge.textContent = "";
   adminPageButton.classList.add("hidden");
+  changePasswordButton.classList.add("hidden");
   deleteSelectedButton.classList.add("hidden");
   postAuthor.value = "";
 }
@@ -558,6 +660,7 @@ function hideMainPanels() {
   scheduleListPanel.classList.add("hidden");
   scheduleCalendarPanel.classList.add("hidden");
   detailPanel.classList.add("hidden");
+  workDetailPanel.classList.add("hidden");
   calendarPanel.classList.add("hidden");
   adminPanel.classList.add("hidden");
   boardList.classList.add("hidden");
@@ -566,6 +669,9 @@ function hideMainPanels() {
   pagination.classList.add("hidden");
   deleteSelectedButton.classList.add("hidden");
   editPostButton.classList.add("hidden");
+  deletePostButton.classList.add("hidden");
+  editWorkButton.classList.add("hidden");
+  deleteWorkButton.classList.add("hidden");
 }
 
 function setMenuActive(activeButton) {
@@ -645,6 +751,8 @@ function showAdminView() {
 function showDetailView(postId) {
   const post = boardItems.find((item) => item.id === postId);
   if (!post) return;
+  const user = getCurrentUser();
+  const canDelete = isAdminUser(user) || post.authorId === user?.id || (!post.authorId && post.authorName === user?.name);
 
   setPostFormOpen(false);
   hideMainPanels();
@@ -652,6 +760,8 @@ function showDetailView(postId) {
   detailPanel.classList.remove("hidden");
   editPostButton.classList.remove("hidden");
   editPostButton.dataset.postId = post.id;
+  deletePostButton.classList.toggle("hidden", !canDelete);
+  deletePostButton.dataset.postId = post.id;
 
   detailDate.textContent = post.dateText;
   detailTitle.textContent = post.title;
@@ -663,6 +773,28 @@ function showDetailView(postId) {
   detailContent.style.color = post.contentColor || "#263442";
   detailContent.innerHTML = renderMarkdown(post.content || "");
   backToListButton.focus();
+}
+
+function showWorkDetailView(itemId) {
+  const item = workItems.find((workItem) => workItem.id === itemId);
+  if (!item) return;
+
+  setWorkFormOpen(false);
+  hideMainPanels();
+  viewHeading.classList.add("hidden");
+  workDetailPanel.classList.remove("hidden");
+  editWorkButton.classList.toggle("hidden", !canEditWorkItem(item));
+  editWorkButton.dataset.workId = item.id;
+  deleteWorkButton.classList.toggle("hidden", !canDeleteWorkItem(item));
+  deleteWorkButton.dataset.workId = item.id;
+
+  workDetailPeriod.textContent = `${formatShortDate(item.startDate)} - ${item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate)}`;
+  workDetailTitle.textContent = item.title;
+  workDetailCategory.textContent = item.category;
+  workDetailStatus.replaceChildren(makeStatusTag(item.status));
+  workDetailAssignees.textContent = getAssigneeNames(item).join(", ");
+  workDetailAuthor.textContent = item.authorName || "";
+  backToWorkListButton.focus();
 }
 
 function getPostDate(post) {
@@ -761,6 +893,10 @@ function renderAdminRows() {
     { value: "member", label: "\uc77c\ubc18" },
     { value: "admin", label: "\uad00\ub9ac\uc790" }
   ];
+  const accessOptions = [
+    { value: "active", label: "\ub85c\uadf8\uc778 \uac00\ub2a5" },
+    { value: "disabled", label: "\uc0ad\uc81c" }
+  ];
   const teamUsers = VALID_USERS.filter((user) => user.id !== "admin");
 
   adminRows.replaceChildren();
@@ -769,15 +905,22 @@ function renderAdminRows() {
     const id = document.createElement("td");
     const name = document.createElement("td");
     const role = document.createElement("td");
+    const access = document.createElement("td");
     const select = makeOptionSelect(getStoredUserRole(user.id), roleOptions, () => {
+      adminMessage.textContent = "";
+    });
+    const accessSelect = makeOptionSelect(isUserDisabled(user.id) ? "disabled" : "active", accessOptions, () => {
       adminMessage.textContent = "";
     });
 
     select.dataset.userId = user.id;
+    accessSelect.dataset.accessUserId = user.id;
     id.textContent = user.id;
     name.textContent = user.name;
+    row.classList.toggle("disabled-user-row", isUserDisabled(user.id));
     role.append(select);
-    row.append(id, name, role);
+    access.append(accessSelect);
+    row.append(id, name, role, access);
     adminRows.append(row);
   });
 }
@@ -787,10 +930,19 @@ async function saveAdminRoles() {
   adminRows.querySelectorAll("select[data-user-id]").forEach((select) => {
     roles[select.dataset.userId] = select.value;
   });
+  const disabledIds = [];
+  adminRows.querySelectorAll("select[data-access-user-id]").forEach((select) => {
+    if (select.value === "disabled") {
+      disabledIds.push(select.dataset.accessUserId);
+    }
+  });
 
   try {
-    await setDoc(adminRolesRef, { roles, updatedAt: new Date().toISOString() }, { merge: true });
-    adminMessage.textContent = "\uad00\ub9ac\uc790 \uad8c\ud55c\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.";
+    await Promise.all([
+      setDoc(adminRolesRef, { roles, updatedAt: new Date().toISOString() }, { merge: true }),
+      setDoc(userAccessRef, { disabledUserIds: disabledIds, updatedAt: new Date().toISOString() }, { merge: true })
+    ]);
+    adminMessage.textContent = "\uad00\ub9ac\uc790 \uad8c\ud55c\uacfc \ub85c\uadf8\uc778 \uad8c\ud55c\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.";
   } catch (error) {
     console.error("관리자 권한 저장에 실패했습니다.", error);
     adminMessage.textContent = "\uc800\uc7a5 \uad8c\ud55c \ub610\ub294 Firebase \uc5f0\uacb0 \uc0c1\ud0dc\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.";
@@ -809,25 +961,44 @@ function getSelectedScheduleIds() {
   return Array.from(scheduleRows.querySelectorAll(".schedule-delete-checkbox:checked")).map((checkbox) => checkbox.value);
 }
 
+function getActiveBulkDeleteTarget() {
+  if (activeView === "work-list") {
+    return { collectionName: "workStatus", selectedIds: getSelectedWorkIds() };
+  }
+
+  if (activeView === "schedule-list") {
+    return { collectionName: "schedules", selectedIds: getSelectedScheduleIds() };
+  }
+
+  return { collectionName: "meetingMinutes", selectedIds: getSelectedPostIds() };
+}
+
 function setDeleteConfirmOpen(isOpen) {
   deleteConfirmModal.classList.toggle("hidden", !isOpen);
+  if (!isOpen) {
+    pendingDeleteAction = null;
+  }
   if (isOpen) {
     confirmDeleteYes.focus();
   }
 }
 
-async function deleteSelectedPosts() {
+function requestDelete(action) {
+  pendingDeleteAction = action;
+  setDeleteConfirmOpen(true);
+}
+
+function setPasswordModalOpen(isOpen) {
+  passwordModal.classList.toggle("hidden", !isOpen);
+  if (isOpen) {
+    passwordForm.reset();
+    passwordMessage.textContent = "";
+    document.querySelector("#currentPassword").focus();
+  }
+}
+
+async function deleteSelectedPosts(selectedIds, collectionName) {
   if (!isAdminUser(getCurrentUser())) return;
-  const selectedIds = activeView === "work-list"
-    ? getSelectedWorkIds()
-    : activeView === "schedule-list"
-      ? getSelectedScheduleIds()
-      : getSelectedPostIds();
-  const collectionName = activeView === "work-list"
-    ? "workStatus"
-    : activeView === "schedule-list"
-      ? "schedules"
-      : "meetingMinutes";
   if (selectedIds.length === 0) return;
 
   try {
@@ -838,7 +1009,23 @@ async function deleteSelectedPosts() {
     selectAllSchedules.checked = false;
   } catch (error) {
     console.error("Failed to delete selected items.", error);
+    window.alert("\uc0ad\uc81c\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. Firebase \uc5f0\uacb0 \ub610\ub294 \uad8c\ud55c\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
   }
+}
+
+async function runPendingDelete() {
+  if (pendingDeleteAction) {
+    try {
+      await pendingDeleteAction();
+      setDeleteConfirmOpen(false);
+    } catch (error) {
+      console.error("Failed to delete item.", error);
+    }
+    return;
+  }
+
+  const { selectedIds, collectionName } = getActiveBulkDeleteTarget();
+  await deleteSelectedPosts(selectedIds, collectionName);
 }
 
 function renderPagination(totalItems) {
@@ -1010,6 +1197,17 @@ function makeStatusTag(status) {
   return tag;
 }
 
+function getWorkCategoryClass(category) {
+  const classMap = {
+    "\uc5f0\uad6c\ubcf4\uace0\uc11c": "red",
+    "\uc815\uae30\ubcf4\uace0\uc11c": "green",
+    "\ube0c\ub9ac\ud504": "blue",
+    "\uc804\ub9dd": "yellow",
+    "\uae30\ud0c0": "purple"
+  };
+  return classMap[category] || "purple";
+}
+
 function formatWorkPeriod(item) {
   const start = formatShortDate(item.startDate);
   const end = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
@@ -1045,7 +1243,7 @@ function renderWorkDashboard() {
       title.textContent = item.title;
 
       const category = document.createElement("p");
-      category.className = "dashboard-meta category";
+      category.className = `dashboard-meta category ${getWorkCategoryClass(item.category)}`;
       category.textContent = item.category;
 
       const assignees = document.createElement("p");
@@ -1110,16 +1308,14 @@ function appendOptions(select, options, includeAll) {
   });
 }
 
-function populateFormControls() {
-  appendOptions(categoryTwo, TYPE_OPTIONS, false);
-  appendOptions(postTypeTwo, TYPE_OPTIONS, false);
-  appendOptions(workStatus, WORK_STATUS_OPTIONS, false);
-  appendOptions(workCategory, WORK_CATEGORY_OPTIONS, false);
-  appendOptions(workFilterStatus, WORK_STATUS_OPTIONS, false);
-  appendOptions(workFilterCategory, WORK_CATEGORY_OPTIONS, false);
-  appendOptions(scheduleCategory, SCHEDULE_CATEGORY_OPTIONS, false);
+function renderUserChoices() {
+  if (!participantChoices || !workAssigneeChoices || !workFilterAssignee) return;
 
-  VALID_USERS.filter((user) => user.id !== "admin").forEach((user) => {
+  participantChoices.replaceChildren();
+  workAssigneeChoices.replaceChildren();
+  workFilterAssignee.querySelectorAll("option:not(:first-child)").forEach((option) => option.remove());
+
+  getActiveUsers().forEach((user) => {
     const label = document.createElement("label");
     label.className = "participant-choice";
 
@@ -1137,7 +1333,7 @@ function populateFormControls() {
 
   [
     { id: "team-sme", name: "\uc911\uc18c\uae30\uc5c5\ud300" },
-    ...VALID_USERS.filter((user) => user.id !== "admin")
+    ...getActiveUsers()
   ].forEach((assignee) => {
     const label = document.createElement("label");
     label.className = "participant-choice";
@@ -1155,6 +1351,17 @@ function populateFormControls() {
     filterOption.textContent = assignee.name;
     workFilterAssignee.append(filterOption);
   });
+}
+
+function populateFormControls() {
+  appendOptions(categoryTwo, TYPE_OPTIONS, false);
+  appendOptions(postTypeTwo, TYPE_OPTIONS, false);
+  appendOptions(workStatus, WORK_STATUS_OPTIONS, false);
+  appendOptions(workCategory, WORK_CATEGORY_OPTIONS, false);
+  appendOptions(workFilterStatus, WORK_STATUS_OPTIONS, false);
+  appendOptions(workFilterCategory, WORK_CATEGORY_OPTIONS, false);
+  appendOptions(scheduleCategory, SCHEDULE_CATEGORY_OPTIONS, false);
+  renderUserChoices();
 }
 
 function getFilteredItems() {
@@ -1263,6 +1470,14 @@ function canEditWorkItem(item) {
   return isAdminUser(user) || getAssigneeIds(item).includes(user?.id);
 }
 
+function canDeleteWorkItem(item) {
+  const user = getCurrentUser();
+  return isAdminUser(user)
+    || item.authorId === user?.id
+    || (!item.authorId && item.authorName === user?.name)
+    || (!item.authorId && getAssigneeIds(item).includes(user?.id));
+}
+
 function getFilteredWorkItems() {
   const startDate = workFilterStartDate.value;
   const endDate = workFilterEndDate.value;
@@ -1313,20 +1528,12 @@ function renderWorkList() {
 
     const title = document.createElement("td");
     title.className = "title-cell";
-    if (canEditWorkItem(item)) {
-      const button = document.createElement("button");
-      button.className = "link-button";
-      button.type = "button";
-      button.textContent = item.title;
-      button.addEventListener("click", () => {
-        showWorkListView();
-        fillWorkForm(item);
-        setWorkFormOpen(true);
-      });
-      title.append(button);
-    } else {
-      title.textContent = item.title;
-    }
+    const button = document.createElement("button");
+    button.className = "link-button";
+    button.type = "button";
+    button.textContent = item.title;
+    button.addEventListener("click", () => showWorkDetailView(item.id));
+    title.append(button);
 
     const assignee = document.createElement("td");
     assignee.textContent = getAssigneeNames(item).join(", ");
@@ -1465,6 +1672,7 @@ loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
   const userId = String(formData.get("userId")).trim();
+  const password = String(formData.get("password") || "");
   const user = VALID_USERS.find((item) => item.id === userId);
 
   if (!user) {
@@ -1475,6 +1683,16 @@ loginForm.addEventListener("submit", async (event) => {
   loginError.textContent = "";
   try {
     await ensureAnonymousAuth();
+    await loadUserAccessSettings();
+    if (isUserDisabled(user.id)) {
+      loginError.textContent = ko.loginDisabled;
+      return;
+    }
+    await loadPasswordSettings();
+    if (!await isValidPassword(user.id, password)) {
+      loginError.textContent = ko.badPassword;
+      return;
+    }
     startFirestoreListeners();
     const loginUser = { ...user, role: getStoredUserRole(user.id) };
     sessionStorage.setItem("currentUser", JSON.stringify(loginUser));
@@ -1571,6 +1789,8 @@ workForm.addEventListener("submit", async (event) => {
     assigneeNames: assigneeIds.map(getUserName).filter(Boolean),
     status: String(formData.get("status")),
     category: String(formData.get("category")),
+    authorId: getCurrentUser()?.id || "",
+    authorName: getCurrentUser()?.name || "",
     createdAt: new Date().toISOString()
   };
 
@@ -1705,16 +1925,12 @@ editPostButton.addEventListener("click", () => {
 });
 
 deleteSelectedButton.addEventListener("click", () => {
-  const selectedIds = activeView === "work-list"
-    ? getSelectedWorkIds()
-    : activeView === "schedule-list"
-      ? getSelectedScheduleIds()
-      : getSelectedPostIds();
+  const { selectedIds, collectionName } = getActiveBulkDeleteTarget();
   if (selectedIds.length === 0) return;
-  setDeleteConfirmOpen(true);
+  requestDelete(() => deleteSelectedPosts(selectedIds, collectionName));
 });
 
-confirmDeleteYes.addEventListener("click", deleteSelectedPosts);
+confirmDeleteYes.addEventListener("click", runPendingDelete);
 
 confirmDeleteNo.addEventListener("click", () => setDeleteConfirmOpen(false));
 
@@ -1744,6 +1960,39 @@ selectAllSchedules.addEventListener("change", () => {
 
 backToListButton.addEventListener("click", showListView);
 
+backToWorkListButton.addEventListener("click", showWorkListView);
+
+deletePostButton.addEventListener("click", () => {
+  const post = boardItems.find((item) => item.id === deletePostButton.dataset.postId);
+  const user = getCurrentUser();
+  const canDelete = post && (isAdminUser(user) || post.authorId === user?.id || (!post.authorId && post.authorName === user?.name));
+  if (!canDelete) return;
+
+  requestDelete(async () => {
+    await deleteDoc(doc(db, "meetingMinutes", post.id));
+    showListView();
+  });
+});
+
+editWorkButton.addEventListener("click", () => {
+  const item = workItems.find((workItem) => workItem.id === editWorkButton.dataset.workId);
+  if (!item || !canEditWorkItem(item)) return;
+
+  showWorkListView();
+  fillWorkForm(item);
+  setWorkFormOpen(true);
+});
+
+deleteWorkButton.addEventListener("click", () => {
+  const item = workItems.find((workItem) => workItem.id === deleteWorkButton.dataset.workId);
+  if (!item || !canDeleteWorkItem(item)) return;
+
+  requestDelete(async () => {
+    await deleteDoc(doc(db, "workStatus", item.id));
+    showWorkListView();
+  });
+});
+
 menuWorkDashboardButton.addEventListener("click", showWorkDashboardView);
 
 menuWorkListButton.addEventListener("click", showWorkListView);
@@ -1761,6 +2010,51 @@ adminPageButton.addEventListener("click", showAdminView);
 saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 
 boldButton.addEventListener("click", applyBoldToSelection);
+
+changePasswordButton.addEventListener("click", () => setPasswordModalOpen(true));
+
+cancelPasswordButton.addEventListener("click", () => setPasswordModalOpen(false));
+
+passwordModal.addEventListener("click", (event) => {
+  if (event.target === passwordModal) {
+    setPasswordModalOpen(false);
+  }
+});
+
+passwordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const formData = new FormData(passwordForm);
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+
+  if (!await isValidPassword(user.id, currentPassword)) {
+    passwordMessage.textContent = ko.badPassword;
+    return;
+  }
+
+  if (newPassword.length < 4) {
+    passwordMessage.textContent = ko.passwordTooShort;
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    passwordMessage.textContent = ko.passwordMismatch;
+    return;
+  }
+
+  try {
+    await saveUserPassword(user.id, newPassword);
+    passwordMessage.textContent = ko.passwordChanged;
+    setTimeout(() => setPasswordModalOpen(false), 700);
+  } catch (error) {
+    console.error("Failed to change password.", error);
+    passwordMessage.textContent = ko.authFailed;
+  }
+});
 
 prevMonthButton.addEventListener("click", () => {
   currentCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1);
