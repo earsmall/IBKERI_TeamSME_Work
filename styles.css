@@ -1764,16 +1764,37 @@ td:nth-child(5) {
 
 .work-update-table {
   min-width: 520px;
+  color: #05070a;
 }
 
 .work-update-table th,
 .work-update-table td {
   padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.work-update-table th {
+  position: static;
+  background: #eef4fa;
+  color: #05070a;
+  font-weight: 900;
+}
+
+.work-update-table td {
+  background: #fff;
+  color: #05070a;
+  font-weight: 800;
 }
 
 .work-update-table th:first-child,
 .work-update-table td:first-child {
   width: 150px;
+}
+
+.work-update-table .work-update-actions-header,
+.work-update-table .action-cell {
+  width: 130px;
+  text-align: center;
 }
 
 .markdown-body {

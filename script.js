@@ -901,6 +901,7 @@ function showWorkDetailView(itemId) {
   deleteWorkButton.dataset.workId = item.id;
   workUpdateForm.classList.toggle("hidden", !canEdit);
   workUpdateForm.reset();
+  delete workUpdateForm.dataset.editUpdateId;
   workUpdateDate.value = getLocalDateValue(new Date());
 
   workDetailPeriod.textContent = `${formatShortDate(item.startDate)} - ${item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate)}`;
@@ -1394,16 +1395,50 @@ function getWorkCategoryClass(category) {
 
 function renderWorkUpdates(item) {
   const updates = [...(item.updates || [])].sort((a, b) => (normalizeDateValue(b.date) || "").localeCompare(normalizeDateValue(a.date) || ""));
+  const canEdit = canEditWorkItem(item);
   workUpdateRows.replaceChildren();
 
   updates.forEach((update) => {
     const row = document.createElement("tr");
     const date = document.createElement("td");
     const content = document.createElement("td");
+    const actions = document.createElement("td");
 
     date.textContent = formatShortDate(update.date);
     content.textContent = update.content;
-    row.append(date, content);
+    actions.className = "action-cell";
+
+    if (canEdit) {
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "small-action-button";
+      edit.textContent = "\uc218\uc815";
+      edit.addEventListener("click", () => {
+        workUpdateDate.value = normalizeDateValue(update.date);
+        workUpdateContent.value = update.content;
+        workUpdateForm.dataset.editUpdateId = update.id;
+        workUpdateContent.focus();
+      });
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "small-action-button danger";
+      remove.textContent = "\uc0ad\uc81c";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("\uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?")) return;
+        const nextUpdates = (item.updates || []).filter((savedUpdate) => savedUpdate.id !== update.id);
+        await setDoc(doc(db, "workStatus", item.id), {
+          updates: nextUpdates,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        item.updates = nextUpdates;
+        renderWorkUpdates(item);
+      });
+
+      actions.append(edit, remove);
+    }
+
+    row.append(date, content, actions);
     workUpdateRows.append(row);
   });
 
@@ -1684,15 +1719,16 @@ function renderBoard() {
 
 function canEditWorkItem(item) {
   const user = getCurrentUser();
-  return isAdminUser(user) || getAssigneeIds(item).includes(user?.id);
+  return Boolean(user) && (isAdminUser(user) || getAssigneeIds(item).includes(user.id) || getAssigneeIds(item).includes("team-sme"));
 }
 
 function canDeleteWorkItem(item) {
   const user = getCurrentUser();
-  return isAdminUser(user)
+  return Boolean(user) && (isAdminUser(user)
     || item.authorId === user?.id
     || (!item.authorId && item.authorName === user?.name)
-    || (!item.authorId && getAssigneeIds(item).includes(user?.id));
+    || (!item.authorId && getAssigneeIds(item).includes(user?.id))
+    || getAssigneeIds(item).includes("team-sme"));
 }
 
 function getFilteredWorkItems() {
@@ -2103,13 +2139,15 @@ workUpdateForm.addEventListener("submit", async (event) => {
 
   const formData = new FormData(workUpdateForm);
   const update = {
-    id: String(Date.now()),
+    id: workUpdateForm.dataset.editUpdateId || String(Date.now()),
     date: normalizeDateValue(String(formData.get("date"))),
     content: String(formData.get("content")).trim()
   };
   if (!update.date || !update.content) return;
 
-  const updates = [...(item.updates || []), update];
+  const updates = workUpdateForm.dataset.editUpdateId
+    ? (item.updates || []).map((savedUpdate) => savedUpdate.id === update.id ? update : savedUpdate)
+    : [...(item.updates || []), update];
 
   try {
     await setDoc(doc(db, "workStatus", item.id), {
@@ -2119,6 +2157,7 @@ workUpdateForm.addEventListener("submit", async (event) => {
     item.updates = updates;
     renderWorkUpdates(item);
     workUpdateForm.reset();
+    delete workUpdateForm.dataset.editUpdateId;
     workUpdateDate.value = getLocalDateValue(new Date());
     workUpdateContent.focus();
   } catch (error) {
