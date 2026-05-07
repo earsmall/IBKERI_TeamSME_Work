@@ -107,8 +107,11 @@ const loginBadge = document.querySelector("#loginBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const adminPageButton = document.querySelector("#adminPageButton");
 const changePasswordButton = document.querySelector("#changePasswordButton");
+const homeButton = document.querySelector("#homeButton");
+const brandHomeButton = document.querySelector("#brandHomeButton");
 const newPostButton = document.querySelector("#newPostButton");
 const deleteSelectedButton = document.querySelector("#deleteSelectedButton");
+const boardActions = document.querySelector("#boardActions");
 const cancelPostButton = document.querySelector("#cancelPostButton");
 const backToListButton = document.querySelector("#backToListButton");
 const editPostButton = document.querySelector("#editPostButton");
@@ -522,6 +525,7 @@ function showWorkListView() {
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ubaa9\ub85d";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   workFilters.classList.remove("hidden");
   workListPanel.classList.remove("hidden");
   newPostButton.classList.remove("hidden");
@@ -667,6 +671,7 @@ function hideMainPanels() {
   searchInput.closest(".controls").classList.add("hidden");
   postPanel.classList.add("hidden");
   pagination.classList.add("hidden");
+  boardActions.classList.add("hidden");
   deleteSelectedButton.classList.add("hidden");
   editPostButton.classList.add("hidden");
   deletePostButton.classList.add("hidden");
@@ -691,6 +696,7 @@ function showListView() {
   hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \ubaa9\ub85d";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   boardList.classList.remove("hidden");
   searchInput.closest(".controls").classList.remove("hidden");
   newPostButton.classList.remove("hidden");
@@ -704,6 +710,7 @@ function showCalendarView() {
   hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \uce98\ub9b0\ub354";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   calendarPanel.classList.remove("hidden");
   newPostButton.classList.remove("hidden");
   setMenuActive(menuCalendarButton);
@@ -716,6 +723,7 @@ function showScheduleListView() {
   hideMainPanels();
   viewHeading.textContent = "\uc77c\uc815 - \ubaa9\ub85d";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   scheduleListPanel.classList.remove("hidden");
   newPostButton.classList.remove("hidden");
   deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
@@ -728,6 +736,7 @@ function showScheduleCalendarView() {
   hideMainPanels();
   viewHeading.textContent = "\uc77c\uc815 - \uce98\ub9b0\ub354";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   scheduleCalendarPanel.classList.remove("hidden");
   newPostButton.classList.remove("hidden");
   setMenuActive(menuScheduleCalendarButton);
@@ -862,7 +871,7 @@ function renderCalendar() {
 
     (postsByDate.get(key) || []).forEach((post) => {
       const button = document.createElement("button");
-      button.className = "calendar-event black";
+      button.className = `calendar-event ${tagColor[normalizeType(post.type2)] || "blue"}`;
       button.type = "button";
       button.textContent = post.title;
       button.addEventListener("click", () => showDetailView(post.id));
@@ -1240,6 +1249,16 @@ function getWorkCategoryClass(category) {
   return classMap[category] || "purple";
 }
 
+function getScheduleCategoryClass(category) {
+  const classMap = {
+    "\ud589\uc0ac": "blue",
+    "\ud734\uac00": "red",
+    "\ud68c\uc758": "green",
+    "\uae30\ud0c0": "purple"
+  };
+  return classMap[category] || "purple";
+}
+
 function formatWorkPeriod(item) {
   const start = formatShortDate(item.startDate);
   const end = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
@@ -1590,7 +1609,7 @@ function canManageScheduleItem(item) {
 
 function renderScheduleList() {
   if (!scheduleRows) return;
-  const sortedItems = [...scheduleItems].sort((a, b) => (normalizeDateValue(a.startDate) || "").localeCompare(normalizeDateValue(b.startDate) || ""));
+  const sortedItems = [...scheduleItems].sort((a, b) => (normalizeDateValue(b.startDate) || "").localeCompare(normalizeDateValue(a.startDate) || ""));
   const canDelete = isAdminUser(getCurrentUser());
   scheduleDeleteSelectHeader.classList.toggle("hidden", !canDelete);
   selectAllSchedules.checked = false;
@@ -1616,7 +1635,10 @@ function renderScheduleList() {
     date.textContent = formatSchedulePeriod(item);
 
     const category = document.createElement("td");
-    category.textContent = item.category;
+    const categoryTag = document.createElement("span");
+    categoryTag.className = `schedule-category-tag ${getScheduleCategoryClass(item.category)}`;
+    categoryTag.textContent = item.category;
+    category.append(categoryTag);
 
     const description = document.createElement("td");
     description.textContent = item.description;
@@ -1683,7 +1705,7 @@ function renderScheduleCalendar() {
       return key >= start && key <= end;
     }).forEach((item) => {
       const badge = document.createElement("button");
-      badge.className = "calendar-event black";
+      badge.className = `calendar-event ${getScheduleCategoryClass(item.category)}`;
       badge.type = "button";
       badge.textContent = `${item.category} ${item.description}`;
       if (canManageScheduleItem(item)) {
@@ -2047,6 +2069,10 @@ saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 boldButton.addEventListener("click", applyBoldToSelection);
 
 changePasswordButton.addEventListener("click", () => setPasswordModalOpen(true));
+
+homeButton.addEventListener("click", showWorkDashboardView);
+
+brandHomeButton.addEventListener("click", showWorkDashboardView);
 
 cancelPasswordButton.addEventListener("click", () => setPasswordModalOpen(false));
 

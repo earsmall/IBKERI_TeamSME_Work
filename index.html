@@ -10,9 +10,7 @@
   <main class="app-shell">
     <section class="login-view" id="loginView" aria-labelledby="loginTitle">
       <div class="login-panel">
-        <p class="eyebrow">Team Workspace</p>
-        <h1 id="loginTitle">&#50629;&#47924; &#54788;&#54889; &#44172;&#49884;&#54032;</h1>
-        <p class="login-copy">&#54016;&#50896; &#47196;&#44536;&#51064; &#54980; &#45216;&#51676;&#48324; &#54924;&#51032;&#50752; &#50629;&#47924; &#51652;&#54665; &#49345;&#54889;&#51012; &#54869;&#51064;&#54616;&#49464;&#50836;.</p>
+        <h1 id="loginTitle">&#51473;&#49548;&#44592;&#50629;&#54016;</h1>
 
         <form class="login-form" id="loginForm">
           <label for="userId">&#49324;&#48264;</label>
@@ -26,16 +24,15 @@
       </div>
     </section>
 
-    <section class="board-view hidden" id="boardView" aria-labelledby="boardTitle">
+    <section class="board-view hidden" id="boardView" aria-labelledby="brandHomeButton">
       <header class="topbar">
         <div>
           <p class="eyebrow">IBK&#44221;&#51228;&#50672;&#44396;&#49548; &#51473;&#44592;&#49328;&#50629;&#50672;&#44396;&#49892;</p>
-          <h1 id="boardTitle">&#51473;&#49548;&#44592;&#50629;&#54016;</h1>
+          <button class="brand-home" id="brandHomeButton" type="button">&#51473;&#49548;&#44592;&#50629;&#54016;</button>
         </div>
         <div class="topbar-actions">
           <span id="loginBadge" class="login-badge"></span>
-          <button class="primary-button" id="newPostButton" type="button" aria-expanded="false" aria-controls="postPanel">&#49352;&#47196; &#47564;&#46308;&#44592;</button>
-          <button class="danger-button hidden" id="deleteSelectedButton" type="button">&#49325;&#51228;</button>
+          <button class="ghost-button" id="homeButton" type="button">&#54856;</button>
           <button class="ghost-button hidden" id="changePasswordButton" type="button">&#48708;&#48128;&#48264;&#54840; &#48320;&#44221;</button>
           <button class="ghost-button" id="logoutButton" type="button">&#47196;&#44536;&#50500;&#50883;</button>
           <button class="ghost-button hidden" id="adminPageButton" type="button">&#44288;&#47532;&#51088; &#54168;&#51060;&#51648;</button>
@@ -63,6 +60,10 @@
 
         <div class="workspace-main">
       <div class="view-heading" id="viewHeading">&#50629;&#47924; &#54788;&#54889; - &#45824;&#49772;&#48372;&#46300;</div>
+      <div class="board-actions hidden" id="boardActions">
+        <button class="danger-button hidden" id="deleteSelectedButton" type="button">&#49325;&#51228;</button>
+        <button class="primary-button" id="newPostButton" type="button" aria-expanded="false" aria-controls="postPanel">&#49352;&#47196; &#47564;&#46308;&#44592;</button>
+      </div>
       <section class="work-filters hidden" id="workFilters" aria-label="work status filters">
         <div>
           <label for="workFilterStartDate">&#49884;&#51089;&#51068;</label>
