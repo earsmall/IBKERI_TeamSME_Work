@@ -10,6 +10,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 const meetingCollection = db.collection("meetingMinutes");
 const workCollection = db.collection("workStatus");
 const scheduleCollection = db.collection("schedules");
@@ -184,6 +185,7 @@ const memoForm = document.querySelector("#memoForm");
 const memoFormTitle = document.querySelector("#memoFormTitle");
 const memoTitle = document.querySelector("#memoTitle");
 const memoContent = document.querySelector("#memoContent");
+const memoAttachmentInput = document.querySelector("#memoAttachments");
 const memoFormMessage = document.querySelector("#memoFormMessage");
 const cancelMemoButton = document.querySelector("#cancelMemoButton");
 const memoListPanel = document.querySelector("#memoListPanel");
@@ -199,6 +201,8 @@ const memoDetailDate = document.querySelector("#memoDetailDate");
 const memoDetailTitle = document.querySelector("#memoDetailTitle");
 const memoDetailAuthor = document.querySelector("#memoDetailAuthor");
 const memoDetailContent = document.querySelector("#memoDetailContent");
+const memoDetailAttachmentsSection = document.querySelector("#memoDetailAttachmentsSection");
+const memoDetailAttachments = document.querySelector("#memoDetailAttachments");
 const calendarPanel = document.querySelector("#calendarPanel");
 const adminPanel = document.querySelector("#adminPanel");
 const adminRows = document.querySelector("#adminRows");
@@ -392,6 +396,7 @@ function normalizeMemoItem(id, item) {
     id,
     title: item.title || "",
     content: item.content || "",
+    attachments: Array.isArray(item.attachments) ? item.attachments : [],
     authorId,
     authorName: item.authorName || getUserName(authorId),
     createdAt: item.createdAt || "",
@@ -762,8 +767,86 @@ function fillMemoForm(item) {
   editingMemoId = item.id;
   memoTitle.value = item.title;
   memoContent.value = item.content;
+  memoAttachmentInput.value = "";
   memoFormMessage.textContent = "";
   memoFormTitle.textContent = "\uba54\ubaa8 \uc218\uc815";
+}
+
+function sanitizeStorageFileName(fileName) {
+  return String(fileName || "attachment")
+    .replace(/[\\/#?%*:|"<>]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 140) || "attachment";
+}
+
+function encodeRFC5987Value(value) {
+  return encodeURIComponent(value)
+    .replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/\*/g, "%2A");
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes) || 0;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function uploadMemoAttachments(memoId, files) {
+  const fileList = Array.from(files || []);
+  if (fileList.length === 0) return [];
+
+  return Promise.all(fileList.map(async (file, index) => {
+    const name = sanitizeStorageFileName(file.name);
+    const path = `memos/${memoId}/${Date.now()}-${index}-${name}`;
+    const ref = storage.ref(path);
+    const metadata = {
+      contentType: file.type || "application/octet-stream",
+      contentDisposition: `attachment; filename*=UTF-8''${encodeRFC5987Value(name)}`
+    };
+    await ref.put(file, metadata);
+    const url = await ref.getDownloadURL();
+    return {
+      name,
+      size: file.size,
+      type: file.type || "",
+      path,
+      url,
+      uploadedAt: new Date().toISOString()
+    };
+  }));
+}
+
+async function deleteMemoAttachments(item) {
+  const attachments = Array.isArray(item?.attachments) ? item.attachments : [];
+  await Promise.all(attachments.map(async (attachment) => {
+    if (!attachment.path) return;
+    try {
+      await storage.ref(attachment.path).delete();
+    } catch (error) {
+      if (error?.code !== "storage/object-not-found") {
+        throw error;
+      }
+    }
+  }));
+}
+
+function renderAttachmentLinks(container, attachments, options = {}) {
+  container.replaceChildren();
+  const fileList = Array.isArray(attachments) ? attachments : [];
+  fileList.forEach((attachment) => {
+    const link = document.createElement("a");
+    link.className = options.compact ? "attachment-link compact" : "attachment-link";
+    link.href = attachment.url || "#";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.download = attachment.name || "";
+    link.textContent = options.compact
+      ? (attachment.name || "\ud30c\uc77c")
+      : `${attachment.name || "\ud30c\uc77c"} (${formatFileSize(attachment.size)})`;
+    container.append(link);
+  });
 }
 
 function hideMainPanels() {
@@ -970,6 +1053,9 @@ function showMemoDetailView(itemId) {
   memoDetailTitle.textContent = item.title;
   memoDetailAuthor.textContent = item.authorName || "";
   memoDetailContent.textContent = item.content || "";
+  const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+  memoDetailAttachmentsSection.classList.toggle("hidden", attachments.length === 0);
+  renderAttachmentLinks(memoDetailAttachments, attachments);
   backToMemoListButton.focus();
 }
 
@@ -1222,6 +1308,10 @@ async function deleteSelectedPosts(selectedIds, collectionName) {
   }
 
   try {
+    if (collectionName === "memos") {
+      const selectedMemos = memoItems.filter((item) => selectedIds.includes(item.id));
+      await Promise.all(selectedMemos.map(deleteMemoAttachments));
+    }
     await Promise.all(selectedIds.map((id) => db.collection(collectionName).doc(id).delete()));
     refreshAfterDelete(collectionName, selectedIds);
     setDeleteConfirmOpen(false);
@@ -1971,7 +2061,15 @@ function renderMemoList() {
     const created = document.createElement("td");
     created.textContent = formatShortDate((item.createdAt || "").slice(0, 10));
 
-    row.append(title, author, created);
+    const attachments = document.createElement("td");
+    attachments.className = "memo-attachment-cell";
+    if (item.attachments.length > 0) {
+      renderAttachmentLinks(attachments, item.attachments, { compact: true });
+    } else {
+      attachments.textContent = "-";
+    }
+
+    row.append(title, author, created, attachments);
     memoRows.append(row);
   });
 
@@ -2239,6 +2337,7 @@ memoForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const user = getCurrentUser();
   const formData = new FormData(memoForm);
+  const selectedFiles = memoAttachmentInput.files;
   const memo = {
     title: String(formData.get("title")).trim(),
     content: String(formData.get("content")).trim(),
@@ -2251,13 +2350,19 @@ memoForm.addEventListener("submit", async (event) => {
     if (editingMemoId) {
       const existingMemo = memoItems.find((item) => item.id === editingMemoId);
       if (!existingMemo || !canManageMemoItem(existingMemo)) return;
+      const newAttachments = await uploadMemoAttachments(editingMemoId, selectedFiles);
       await setDoc(doc(db, "memos", editingMemoId), {
         title: memo.title,
         content: memo.content,
+        attachments: [...(existingMemo.attachments || []), ...newAttachments],
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } else {
-      await addDoc(memoCollection, memo);
+      const memoRef = await addDoc(memoCollection, { ...memo, attachments: [] });
+      const attachments = await uploadMemoAttachments(memoRef.id, selectedFiles);
+      if (attachments.length > 0) {
+        await setDoc(memoRef, { attachments }, { merge: true });
+      }
     }
   } catch (error) {
     console.error("Failed to save memo.", error);
@@ -2475,6 +2580,7 @@ deleteMemoButton.addEventListener("click", () => {
   if (!item || !canManageMemoItem(item)) return;
 
   requestDelete(async () => {
+    await deleteMemoAttachments(item);
     await deleteDoc(doc(db, "memos", item.id));
     showMemoListView();
   });

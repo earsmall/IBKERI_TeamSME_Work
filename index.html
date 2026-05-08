@@ -249,6 +249,10 @@
             <label for="memoContent">&#45236;&#50857;</label>
             <textarea id="memoContent" name="content" rows="8" required></textarea>
           </div>
+          <div class="wide-field">
+            <label for="memoAttachments">&#52392;&#48512;&#54028;&#51068;</label>
+            <input id="memoAttachments" name="attachments" type="file" multiple>
+          </div>
           <p class="form-message" id="memoFormMessage" role="status"></p>
           <div class="form-actions">
             <button class="secondary-button" id="cancelMemoButton" type="button">&#52712;&#49548;</button>
@@ -268,6 +272,7 @@
                 <th scope="col">&#51228;&#47785;</th>
                 <th scope="col">&#51089;&#49457;&#51088;</th>
                 <th scope="col">&#51089;&#49457;&#45216;&#51676;</th>
+                <th scope="col">&#52392;&#48512;</th>
               </tr>
             </thead>
             <tbody id="memoRows"></tbody>
@@ -294,6 +299,10 @@
           <section class="detail-content" aria-label="memo content">
             <h3>&#45236;&#50857;</h3>
             <div id="memoDetailContent" class="markdown-body"></div>
+          </section>
+          <section class="detail-content hidden" id="memoDetailAttachmentsSection" aria-label="memo attachments">
+            <h3>&#52392;&#48512;&#54028;&#51068;</h3>
+            <div id="memoDetailAttachments" class="attachment-list"></div>
           </section>
         </article>
       </section>
@@ -587,6 +596,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -540,7 +540,8 @@ textarea:focus {
 }
 
 .post-form button,
-.work-form button {
+.work-form button,
+.memo-form button {
   min-width: 100px;
   padding: 0 18px;
   color: #fff;
@@ -549,20 +550,23 @@ textarea:focus {
 
 .post-form button:hover,
 .work-form button:hover,
-.schedule-form button:hover {
+.schedule-form button:hover,
+.memo-form button:hover {
   background: var(--accent-dark);
 }
 
 .post-form .secondary-button,
 .work-form .secondary-button,
-.schedule-form .secondary-button {
+.schedule-form .secondary-button,
+.memo-form .secondary-button {
   color: var(--accent);
   background: #e7eef5;
 }
 
 .post-form .secondary-button:hover,
 .work-form .secondary-button:hover,
-.schedule-form .secondary-button:hover {
+.schedule-form .secondary-button:hover,
+.memo-form .secondary-button:hover {
   background: #d6e3ef;
 }
 
@@ -1038,7 +1042,7 @@ td:nth-child(5) {
 }
 
 #memoTable {
-  min-width: 760px;
+  min-width: 900px;
 }
 
 #memoTable th:nth-child(2),
@@ -1054,6 +1058,47 @@ td:nth-child(5) {
 #memoTable th:nth-child(4),
 #memoTable td:nth-child(4) {
   width: 180px;
+}
+
+#memoTable th:nth-child(5),
+#memoTable td:nth-child(5) {
+  width: 220px;
+}
+
+.memo-attachment-cell {
+  font-size: 13px;
+}
+
+.attachment-list,
+.memo-attachment-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachment-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #b8cede;
+  border-radius: 6px;
+  color: var(--accent-dark);
+  background: #eef6fc;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.attachment-link:hover {
+  background: #dcecf8;
+}
+
+.attachment-link.compact {
+  overflow: hidden;
+  max-width: 190px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-cell {
@@ -1869,6 +1914,8 @@ td:nth-child(5) {
   .issue-controls,
   .post-form,
   .work-form,
+  .schedule-form,
+  .memo-form,
   .content-style-controls,
   .detail-meta {
     grid-template-columns: 1fr;
