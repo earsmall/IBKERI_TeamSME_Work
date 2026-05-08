@@ -103,28 +103,16 @@
         <form class="work-form" id="workForm">
           <div class="work-row-one">
             <label for="workStartDate">&#49884;&#51089;&#51068;</label>
-            <div class="date-option-control">
-              <input id="workStartDate" name="startDate" type="date">
-              <label class="inline-check">
-                <input id="workNoStartDate" name="noStartDate" type="checkbox">
-                <span>&#49884;&#51089;&#51068; &#50630;&#51020;</span>
-              </label>
-            </div>
+            <input id="workStartDate" name="startDate" type="date" required>
           </div>
           <div class="work-row-one">
             <label for="workEndDate">&#51333;&#47308;&#51068;</label>
-            <div class="date-option-control end-date-control">
+            <div class="end-date-control">
               <input id="workEndDate" name="endDate" type="date">
-              <div class="date-option-row">
-                <label class="inline-check">
-                  <input id="workNoEndDate" name="noEndDate" type="checkbox">
-                  <span>&#51333;&#47308;&#51068; &#50630;&#51020;</span>
-                </label>
-                <label class="inline-check">
-                  <input id="workAlwaysOn" name="alwaysOn" type="checkbox">
-                  <span>&#49345;&#49884;</span>
-                </label>
-              </div>
+              <label class="inline-check">
+                <input id="workNoEndDate" name="noEndDate" type="checkbox">
+                <span>&#50630;&#51020;</span>
+              </label>
             </div>
           </div>
           <div class="work-row-one">

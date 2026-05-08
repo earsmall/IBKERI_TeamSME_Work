@@ -765,16 +765,10 @@ textarea:focus {
   grid-column: 1 / -1;
 }
 
-.date-option-control {
+.end-date-control {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: start;
-}
-
-.date-option-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
   align-items: center;
 }
 

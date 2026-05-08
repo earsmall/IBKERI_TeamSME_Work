@@ -144,9 +144,7 @@ const workForm = document.querySelector("#workForm");
 const workFormTitle = document.querySelector("#workFormTitle");
 const workStartDate = document.querySelector("#workStartDate");
 const workEndDate = document.querySelector("#workEndDate");
-const workNoStartDate = document.querySelector("#workNoStartDate");
 const workNoEndDate = document.querySelector("#workNoEndDate");
-const workAlwaysOn = document.querySelector("#workAlwaysOn");
 const workTitle = document.querySelector("#workTitle");
 const workAssigneeChoices = document.querySelector("#workAssigneeChoices");
 const workStatus = document.querySelector("#workStatus");
@@ -359,9 +357,7 @@ function normalizeWorkItem(id, item) {
     id,
     startDate: normalizeDateValue(item.startDate || ""),
     endDate: normalizeDateValue(item.endDate || ""),
-    noStartDate: Boolean(item.noStartDate || item.alwaysOn),
     noEndDate: Boolean(item.noEndDate),
-    alwaysOn: Boolean(item.alwaysOn),
     title: item.title || "",
     assigneeId: assigneeIds[0] || "",
     assigneeIds,
@@ -669,35 +665,13 @@ function setWorkFormOpen(isOpen) {
   if (isOpen) workTitle.focus();
 }
 
-function syncWorkDateControls() {
-  const isAlwaysOn = workAlwaysOn.checked;
-  if (isAlwaysOn) {
-    workNoStartDate.checked = true;
-    workNoEndDate.checked = true;
-    workStartDate.value = "";
-    workEndDate.value = "";
-  }
-
-  workStartDate.disabled = isAlwaysOn || workNoStartDate.checked;
-  workEndDate.disabled = isAlwaysOn || workNoEndDate.checked;
-
-  if (workNoStartDate.checked) {
-    workStartDate.value = "";
-  }
-  if (workNoEndDate.checked) {
-    workEndDate.value = "";
-  }
-}
-
 function clearWorkForm() {
   editingWorkId = null;
   workForm.reset();
   workStartDate.value = getLocalDateValue(new Date());
   workEndDate.value = getLocalDateValue(new Date());
-  workNoStartDate.checked = false;
   workNoEndDate.checked = false;
-  workAlwaysOn.checked = false;
-  syncWorkDateControls();
+  workEndDate.disabled = false;
   document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
     checkbox.checked = false;
   });
@@ -709,10 +683,8 @@ function fillWorkForm(item) {
   editingWorkId = item.id;
   workStartDate.value = normalizeDateValue(item.startDate);
   workEndDate.value = normalizeDateValue(item.endDate);
-  workNoStartDate.checked = Boolean(item.noStartDate || item.alwaysOn);
   workNoEndDate.checked = Boolean(item.noEndDate);
-  workAlwaysOn.checked = Boolean(item.alwaysOn);
-  syncWorkDateControls();
+  workEndDate.disabled = workNoEndDate.checked;
   workTitle.value = item.title;
   const assigneeIds = getAssigneeIds(item);
   document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
@@ -1017,7 +989,7 @@ function showWorkDetailView(itemId) {
   delete workUpdateForm.dataset.editUpdateId;
   workUpdateDate.value = getLocalDateValue(new Date());
 
-  workDetailPeriod.textContent = formatWorkPeriod(item);
+  workDetailPeriod.textContent = `${formatShortDate(item.startDate)} - ${item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate)}`;
   workDetailTitle.textContent = item.title;
   workDetailCategory.textContent = item.category;
   workDetailStatus.replaceChildren(makeStatusTag(item.status));
@@ -1584,22 +1556,9 @@ function getScheduleCategoryClass(category) {
 }
 
 function formatWorkPeriod(item) {
-  if (item.alwaysOn) return "\uc0c1\uc2dc";
-  const start = formatWorkStartDate(item);
-  const end = formatWorkEndDate(item);
+  const start = formatShortDate(item.startDate);
+  const end = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
   return `${start} ~ ${end}`;
-}
-
-function formatWorkStartDate(item) {
-  if (item.alwaysOn) return "\uc0c1\uc2dc";
-  if (item.noStartDate) return "\uc2dc\uc791\uc77c \uc5c6\uc74c";
-  return formatShortDate(item.startDate);
-}
-
-function formatWorkEndDate(item) {
-  if (item.alwaysOn) return "\uc0c1\uc2dc";
-  if (item.noEndDate) return "\uc885\ub8cc\uc77c \uc5c6\uc74c";
-  return formatShortDate(item.endDate);
 }
 
 function formatSchedulePeriod(item) {
@@ -1880,8 +1839,8 @@ function getFilteredWorkItems() {
   const category = workFilterCategory.value;
 
   return workItems.filter((item) => {
-    const itemStart = item.noStartDate || item.alwaysOn ? "0000-01-01" : normalizeDateValue(item.startDate);
-    const itemEnd = item.noEndDate || item.alwaysOn ? "9999-12-31" : normalizeDateValue(item.endDate || item.startDate);
+    const itemStart = normalizeDateValue(item.startDate);
+    const itemEnd = item.noEndDate ? itemStart : normalizeDateValue(item.endDate || item.startDate);
     return (!startDate || itemEnd >= startDate)
       && (!endDate || itemStart <= endDate)
       && (!assignee || getAssigneeIds(item).includes(assignee))
@@ -1915,10 +1874,10 @@ function renderWorkList() {
     }
 
     const start = document.createElement("td");
-    start.textContent = formatWorkStartDate(item);
+    start.textContent = formatShortDate(item.startDate);
 
     const end = document.createElement("td");
-    end.textContent = formatWorkEndDate(item);
+    end.textContent = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
 
     const title = document.createElement("td");
     title.className = "title-cell";
@@ -2232,27 +2191,11 @@ workForm.addEventListener("submit", async (event) => {
     workFormMessage.textContent = "\ub2f4\ub2f9\uc790\ub97c 1\uba85 \uc774\uc0c1 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
     return;
   }
-  const alwaysOn = formData.get("alwaysOn") === "on";
-  const noStartDate = alwaysOn || formData.get("noStartDate") === "on";
-  const noEndDate = alwaysOn || formData.get("noEndDate") === "on";
-  const startDate = noStartDate ? "" : normalizeDateValue(String(formData.get("startDate")));
-  const endDate = noEndDate ? "" : normalizeDateValue(String(formData.get("endDate")));
-
-  if (!noStartDate && !startDate) {
-    workFormMessage.textContent = "\uc2dc\uc791\uc77c\uc744 \uc120\ud0dd\ud558\uac70\ub098 \uc2dc\uc791\uc77c \uc5c6\uc74c\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
-    return;
-  }
-  if (!noEndDate && !endDate) {
-    workFormMessage.textContent = "\uc885\ub8cc\uc77c\uc744 \uc120\ud0dd\ud558\uac70\ub098 \uc885\ub8cc\uc77c \uc5c6\uc74c\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
-    return;
-  }
-
+  const noEndDate = formData.get("noEndDate") === "on";
   const workItem = {
-    startDate,
-    endDate,
-    noStartDate,
+    startDate: normalizeDateValue(String(formData.get("startDate"))),
+    endDate: noEndDate ? "" : normalizeDateValue(String(formData.get("endDate"))),
     noEndDate,
-    alwaysOn,
     title: String(formData.get("title")).trim(),
     assigneeId: assigneeIds[0],
     assigneeIds,
@@ -2272,9 +2215,7 @@ workForm.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "workStatus", editingWorkId), {
         startDate: workItem.startDate,
         endDate: workItem.endDate,
-        noStartDate: workItem.noStartDate,
         noEndDate: workItem.noEndDate,
-        alwaysOn: workItem.alwaysOn,
         title: workItem.title,
         assigneeId: workItem.assigneeId,
         assigneeIds: workItem.assigneeIds,
@@ -2473,9 +2414,12 @@ cancelMemoButton.addEventListener("click", () => {
   setMemoFormOpen(false);
 });
 
-workNoStartDate.addEventListener("change", syncWorkDateControls);
-workNoEndDate.addEventListener("change", syncWorkDateControls);
-workAlwaysOn.addEventListener("change", syncWorkDateControls);
+workNoEndDate.addEventListener("change", () => {
+  workEndDate.disabled = workNoEndDate.checked;
+  if (workNoEndDate.checked) {
+    workEndDate.value = "";
+  }
+});
 
 editPostButton.addEventListener("click", () => {
   const post = boardItems.find((item) => item.id === editPostButton.dataset.postId);
