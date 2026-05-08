@@ -765,10 +765,16 @@ textarea:focus {
   grid-column: 1 / -1;
 }
 
-.end-date-control {
+.date-option-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  align-items: start;
+}
+
+.date-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   align-items: center;
 }
 
@@ -1036,7 +1042,7 @@ td:nth-child(5) {
 }
 
 #memoTable {
-  min-width: 900px;
+  min-width: 760px;
 }
 
 #memoTable th:nth-child(2),
@@ -1052,47 +1058,6 @@ td:nth-child(5) {
 #memoTable th:nth-child(4),
 #memoTable td:nth-child(4) {
   width: 180px;
-}
-
-#memoTable th:nth-child(5),
-#memoTable td:nth-child(5) {
-  width: 220px;
-}
-
-.memo-attachment-cell {
-  font-size: 13px;
-}
-
-.attachment-list,
-.memo-attachment-cell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.attachment-link {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  min-height: 30px;
-  padding: 0 10px;
-  border: 1px solid #b8cede;
-  border-radius: 6px;
-  color: var(--accent-dark);
-  background: #eef6fc;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.attachment-link:hover {
-  background: #dcecf8;
-}
-
-.attachment-link.compact {
-  overflow: hidden;
-  max-width: 190px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .action-cell {

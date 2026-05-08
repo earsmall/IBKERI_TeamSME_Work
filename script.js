@@ -10,7 +10,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 const meetingCollection = db.collection("meetingMinutes");
 const workCollection = db.collection("workStatus");
 const scheduleCollection = db.collection("schedules");
@@ -144,7 +143,9 @@ const workForm = document.querySelector("#workForm");
 const workFormTitle = document.querySelector("#workFormTitle");
 const workStartDate = document.querySelector("#workStartDate");
 const workEndDate = document.querySelector("#workEndDate");
+const workNoStartDate = document.querySelector("#workNoStartDate");
 const workNoEndDate = document.querySelector("#workNoEndDate");
+const workAlwaysOn = document.querySelector("#workAlwaysOn");
 const workTitle = document.querySelector("#workTitle");
 const workAssigneeChoices = document.querySelector("#workAssigneeChoices");
 const workStatus = document.querySelector("#workStatus");
@@ -183,7 +184,6 @@ const memoForm = document.querySelector("#memoForm");
 const memoFormTitle = document.querySelector("#memoFormTitle");
 const memoTitle = document.querySelector("#memoTitle");
 const memoContent = document.querySelector("#memoContent");
-const memoAttachmentInput = document.querySelector("#memoAttachments");
 const memoFormMessage = document.querySelector("#memoFormMessage");
 const cancelMemoButton = document.querySelector("#cancelMemoButton");
 const memoListPanel = document.querySelector("#memoListPanel");
@@ -199,8 +199,6 @@ const memoDetailDate = document.querySelector("#memoDetailDate");
 const memoDetailTitle = document.querySelector("#memoDetailTitle");
 const memoDetailAuthor = document.querySelector("#memoDetailAuthor");
 const memoDetailContent = document.querySelector("#memoDetailContent");
-const memoDetailAttachmentsSection = document.querySelector("#memoDetailAttachmentsSection");
-const memoDetailAttachments = document.querySelector("#memoDetailAttachments");
 const calendarPanel = document.querySelector("#calendarPanel");
 const adminPanel = document.querySelector("#adminPanel");
 const adminRows = document.querySelector("#adminRows");
@@ -357,7 +355,9 @@ function normalizeWorkItem(id, item) {
     id,
     startDate: normalizeDateValue(item.startDate || ""),
     endDate: normalizeDateValue(item.endDate || ""),
+    noStartDate: Boolean(item.noStartDate || item.alwaysOn),
     noEndDate: Boolean(item.noEndDate),
+    alwaysOn: Boolean(item.alwaysOn),
     title: item.title || "",
     assigneeId: assigneeIds[0] || "",
     assigneeIds,
@@ -392,7 +392,6 @@ function normalizeMemoItem(id, item) {
     id,
     title: item.title || "",
     content: item.content || "",
-    attachments: Array.isArray(item.attachments) ? item.attachments : [],
     authorId,
     authorName: item.authorName || getUserName(authorId),
     createdAt: item.createdAt || "",
@@ -665,13 +664,35 @@ function setWorkFormOpen(isOpen) {
   if (isOpen) workTitle.focus();
 }
 
+function syncWorkDateControls() {
+  const isAlwaysOn = workAlwaysOn.checked;
+  if (isAlwaysOn) {
+    workNoStartDate.checked = true;
+    workNoEndDate.checked = true;
+    workStartDate.value = "";
+    workEndDate.value = "";
+  }
+
+  workStartDate.disabled = isAlwaysOn || workNoStartDate.checked;
+  workEndDate.disabled = isAlwaysOn || workNoEndDate.checked;
+
+  if (workNoStartDate.checked) {
+    workStartDate.value = "";
+  }
+  if (workNoEndDate.checked) {
+    workEndDate.value = "";
+  }
+}
+
 function clearWorkForm() {
   editingWorkId = null;
   workForm.reset();
   workStartDate.value = getLocalDateValue(new Date());
   workEndDate.value = getLocalDateValue(new Date());
+  workNoStartDate.checked = false;
   workNoEndDate.checked = false;
-  workEndDate.disabled = false;
+  workAlwaysOn.checked = false;
+  syncWorkDateControls();
   document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
     checkbox.checked = false;
   });
@@ -683,8 +704,10 @@ function fillWorkForm(item) {
   editingWorkId = item.id;
   workStartDate.value = normalizeDateValue(item.startDate);
   workEndDate.value = normalizeDateValue(item.endDate);
+  workNoStartDate.checked = Boolean(item.noStartDate || item.alwaysOn);
   workNoEndDate.checked = Boolean(item.noEndDate);
-  workEndDate.disabled = workNoEndDate.checked;
+  workAlwaysOn.checked = Boolean(item.alwaysOn);
+  syncWorkDateControls();
   workTitle.value = item.title;
   const assigneeIds = getAssigneeIds(item);
   document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
@@ -739,86 +762,8 @@ function fillMemoForm(item) {
   editingMemoId = item.id;
   memoTitle.value = item.title;
   memoContent.value = item.content;
-  memoAttachmentInput.value = "";
   memoFormMessage.textContent = "";
   memoFormTitle.textContent = "\uba54\ubaa8 \uc218\uc815";
-}
-
-function sanitizeStorageFileName(fileName) {
-  return String(fileName || "attachment")
-    .replace(/[\\/#?%*:|"<>]/g, "_")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 140) || "attachment";
-}
-
-function encodeRFC5987Value(value) {
-  return encodeURIComponent(value)
-    .replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
-    .replace(/\*/g, "%2A");
-}
-
-function formatFileSize(bytes) {
-  const size = Number(bytes) || 0;
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
-}
-
-async function uploadMemoAttachments(memoId, files) {
-  const fileList = Array.from(files || []);
-  if (fileList.length === 0) return [];
-
-  return Promise.all(fileList.map(async (file, index) => {
-    const name = sanitizeStorageFileName(file.name);
-    const path = `memos/${memoId}/${Date.now()}-${index}-${name}`;
-    const ref = storage.ref(path);
-    const metadata = {
-      contentType: file.type || "application/octet-stream",
-      contentDisposition: `attachment; filename*=UTF-8''${encodeRFC5987Value(name)}`
-    };
-    await ref.put(file, metadata);
-    const url = await ref.getDownloadURL();
-    return {
-      name,
-      size: file.size,
-      type: file.type || "",
-      path,
-      url,
-      uploadedAt: new Date().toISOString()
-    };
-  }));
-}
-
-async function deleteMemoAttachments(item) {
-  const attachments = Array.isArray(item?.attachments) ? item.attachments : [];
-  await Promise.all(attachments.map(async (attachment) => {
-    if (!attachment.path) return;
-    try {
-      await storage.ref(attachment.path).delete();
-    } catch (error) {
-      if (error?.code !== "storage/object-not-found") {
-        throw error;
-      }
-    }
-  }));
-}
-
-function renderAttachmentLinks(container, attachments, options = {}) {
-  container.replaceChildren();
-  const fileList = Array.isArray(attachments) ? attachments : [];
-  fileList.forEach((attachment) => {
-    const link = document.createElement("a");
-    link.className = options.compact ? "attachment-link compact" : "attachment-link";
-    link.href = attachment.url || "#";
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.download = attachment.name || "";
-    link.textContent = options.compact
-      ? (attachment.name || "\ud30c\uc77c")
-      : `${attachment.name || "\ud30c\uc77c"} (${formatFileSize(attachment.size)})`;
-    container.append(link);
-  });
 }
 
 function hideMainPanels() {
@@ -989,7 +934,7 @@ function showWorkDetailView(itemId) {
   delete workUpdateForm.dataset.editUpdateId;
   workUpdateDate.value = getLocalDateValue(new Date());
 
-  workDetailPeriod.textContent = `${formatShortDate(item.startDate)} - ${item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate)}`;
+  workDetailPeriod.textContent = formatWorkPeriod(item);
   workDetailTitle.textContent = item.title;
   workDetailCategory.textContent = item.category;
   workDetailStatus.replaceChildren(makeStatusTag(item.status));
@@ -1025,9 +970,6 @@ function showMemoDetailView(itemId) {
   memoDetailTitle.textContent = item.title;
   memoDetailAuthor.textContent = item.authorName || "";
   memoDetailContent.textContent = item.content || "";
-  const attachments = Array.isArray(item.attachments) ? item.attachments : [];
-  memoDetailAttachmentsSection.classList.toggle("hidden", attachments.length === 0);
-  renderAttachmentLinks(memoDetailAttachments, attachments);
   backToMemoListButton.focus();
 }
 
@@ -1280,10 +1222,6 @@ async function deleteSelectedPosts(selectedIds, collectionName) {
   }
 
   try {
-    if (collectionName === "memos") {
-      const selectedMemos = memoItems.filter((item) => selectedIds.includes(item.id));
-      await Promise.all(selectedMemos.map(deleteMemoAttachments));
-    }
     await Promise.all(selectedIds.map((id) => db.collection(collectionName).doc(id).delete()));
     refreshAfterDelete(collectionName, selectedIds);
     setDeleteConfirmOpen(false);
@@ -1556,9 +1494,22 @@ function getScheduleCategoryClass(category) {
 }
 
 function formatWorkPeriod(item) {
-  const start = formatShortDate(item.startDate);
-  const end = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
+  if (item.alwaysOn) return "\uc0c1\uc2dc";
+  const start = formatWorkStartDate(item);
+  const end = formatWorkEndDate(item);
   return `${start} ~ ${end}`;
+}
+
+function formatWorkStartDate(item) {
+  if (item.alwaysOn) return "\uc0c1\uc2dc";
+  if (item.noStartDate) return "\uc2dc\uc791\uc77c \uc5c6\uc74c";
+  return formatShortDate(item.startDate);
+}
+
+function formatWorkEndDate(item) {
+  if (item.alwaysOn) return "\uc0c1\uc2dc";
+  if (item.noEndDate) return "\uc885\ub8cc\uc77c \uc5c6\uc74c";
+  return formatShortDate(item.endDate);
 }
 
 function formatSchedulePeriod(item) {
@@ -1839,8 +1790,8 @@ function getFilteredWorkItems() {
   const category = workFilterCategory.value;
 
   return workItems.filter((item) => {
-    const itemStart = normalizeDateValue(item.startDate);
-    const itemEnd = item.noEndDate ? itemStart : normalizeDateValue(item.endDate || item.startDate);
+    const itemStart = item.noStartDate || item.alwaysOn ? "0000-01-01" : normalizeDateValue(item.startDate);
+    const itemEnd = item.noEndDate || item.alwaysOn ? "9999-12-31" : normalizeDateValue(item.endDate || item.startDate);
     return (!startDate || itemEnd >= startDate)
       && (!endDate || itemStart <= endDate)
       && (!assignee || getAssigneeIds(item).includes(assignee))
@@ -1874,10 +1825,10 @@ function renderWorkList() {
     }
 
     const start = document.createElement("td");
-    start.textContent = formatShortDate(item.startDate);
+    start.textContent = formatWorkStartDate(item);
 
     const end = document.createElement("td");
-    end.textContent = item.noEndDate ? "\uc5c6\uc74c" : formatShortDate(item.endDate);
+    end.textContent = formatWorkEndDate(item);
 
     const title = document.createElement("td");
     title.className = "title-cell";
@@ -2020,15 +1971,7 @@ function renderMemoList() {
     const created = document.createElement("td");
     created.textContent = formatShortDate((item.createdAt || "").slice(0, 10));
 
-    const attachments = document.createElement("td");
-    attachments.className = "memo-attachment-cell";
-    if (item.attachments.length > 0) {
-      renderAttachmentLinks(attachments, item.attachments, { compact: true });
-    } else {
-      attachments.textContent = "-";
-    }
-
-    row.append(title, author, created, attachments);
+    row.append(title, author, created);
     memoRows.append(row);
   });
 
@@ -2191,11 +2134,27 @@ workForm.addEventListener("submit", async (event) => {
     workFormMessage.textContent = "\ub2f4\ub2f9\uc790\ub97c 1\uba85 \uc774\uc0c1 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
     return;
   }
-  const noEndDate = formData.get("noEndDate") === "on";
+  const alwaysOn = formData.get("alwaysOn") === "on";
+  const noStartDate = alwaysOn || formData.get("noStartDate") === "on";
+  const noEndDate = alwaysOn || formData.get("noEndDate") === "on";
+  const startDate = noStartDate ? "" : normalizeDateValue(String(formData.get("startDate")));
+  const endDate = noEndDate ? "" : normalizeDateValue(String(formData.get("endDate")));
+
+  if (!noStartDate && !startDate) {
+    workFormMessage.textContent = "\uc2dc\uc791\uc77c\uc744 \uc120\ud0dd\ud558\uac70\ub098 \uc2dc\uc791\uc77c \uc5c6\uc74c\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
+    return;
+  }
+  if (!noEndDate && !endDate) {
+    workFormMessage.textContent = "\uc885\ub8cc\uc77c\uc744 \uc120\ud0dd\ud558\uac70\ub098 \uc885\ub8cc\uc77c \uc5c6\uc74c\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.";
+    return;
+  }
+
   const workItem = {
-    startDate: normalizeDateValue(String(formData.get("startDate"))),
-    endDate: noEndDate ? "" : normalizeDateValue(String(formData.get("endDate"))),
+    startDate,
+    endDate,
+    noStartDate,
     noEndDate,
+    alwaysOn,
     title: String(formData.get("title")).trim(),
     assigneeId: assigneeIds[0],
     assigneeIds,
@@ -2215,7 +2174,9 @@ workForm.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "workStatus", editingWorkId), {
         startDate: workItem.startDate,
         endDate: workItem.endDate,
+        noStartDate: workItem.noStartDate,
         noEndDate: workItem.noEndDate,
+        alwaysOn: workItem.alwaysOn,
         title: workItem.title,
         assigneeId: workItem.assigneeId,
         assigneeIds: workItem.assigneeIds,
@@ -2278,7 +2239,6 @@ memoForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const user = getCurrentUser();
   const formData = new FormData(memoForm);
-  const selectedFiles = memoAttachmentInput.files;
   const memo = {
     title: String(formData.get("title")).trim(),
     content: String(formData.get("content")).trim(),
@@ -2291,19 +2251,13 @@ memoForm.addEventListener("submit", async (event) => {
     if (editingMemoId) {
       const existingMemo = memoItems.find((item) => item.id === editingMemoId);
       if (!existingMemo || !canManageMemoItem(existingMemo)) return;
-      const newAttachments = await uploadMemoAttachments(editingMemoId, selectedFiles);
       await setDoc(doc(db, "memos", editingMemoId), {
         title: memo.title,
         content: memo.content,
-        attachments: [...(existingMemo.attachments || []), ...newAttachments],
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } else {
-      const memoRef = await addDoc(memoCollection, { ...memo, attachments: [] });
-      const attachments = await uploadMemoAttachments(memoRef.id, selectedFiles);
-      if (attachments.length > 0) {
-        await setDoc(memoRef, { attachments }, { merge: true });
-      }
+      await addDoc(memoCollection, memo);
     }
   } catch (error) {
     console.error("Failed to save memo.", error);
@@ -2414,12 +2368,9 @@ cancelMemoButton.addEventListener("click", () => {
   setMemoFormOpen(false);
 });
 
-workNoEndDate.addEventListener("change", () => {
-  workEndDate.disabled = workNoEndDate.checked;
-  if (workNoEndDate.checked) {
-    workEndDate.value = "";
-  }
-});
+workNoStartDate.addEventListener("change", syncWorkDateControls);
+workNoEndDate.addEventListener("change", syncWorkDateControls);
+workAlwaysOn.addEventListener("change", syncWorkDateControls);
 
 editPostButton.addEventListener("click", () => {
   const post = boardItems.find((item) => item.id === editPostButton.dataset.postId);
@@ -2524,7 +2475,6 @@ deleteMemoButton.addEventListener("click", () => {
   if (!item || !canManageMemoItem(item)) return;
 
   requestDelete(async () => {
-    await deleteMemoAttachments(item);
     await deleteDoc(doc(db, "memos", item.id));
     showMemoListView();
   });

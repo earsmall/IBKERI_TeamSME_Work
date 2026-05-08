@@ -103,16 +103,28 @@
         <form class="work-form" id="workForm">
           <div class="work-row-one">
             <label for="workStartDate">&#49884;&#51089;&#51068;</label>
-            <input id="workStartDate" name="startDate" type="date" required>
+            <div class="date-option-control">
+              <input id="workStartDate" name="startDate" type="date">
+              <label class="inline-check">
+                <input id="workNoStartDate" name="noStartDate" type="checkbox">
+                <span>&#49884;&#51089;&#51068; &#50630;&#51020;</span>
+              </label>
+            </div>
           </div>
           <div class="work-row-one">
             <label for="workEndDate">&#51333;&#47308;&#51068;</label>
-            <div class="end-date-control">
+            <div class="date-option-control end-date-control">
               <input id="workEndDate" name="endDate" type="date">
-              <label class="inline-check">
-                <input id="workNoEndDate" name="noEndDate" type="checkbox">
-                <span>&#50630;&#51020;</span>
-              </label>
+              <div class="date-option-row">
+                <label class="inline-check">
+                  <input id="workNoEndDate" name="noEndDate" type="checkbox">
+                  <span>&#51333;&#47308;&#51068; &#50630;&#51020;</span>
+                </label>
+                <label class="inline-check">
+                  <input id="workAlwaysOn" name="alwaysOn" type="checkbox">
+                  <span>&#49345;&#49884;</span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="work-row-one">
@@ -237,10 +249,6 @@
             <label for="memoContent">&#45236;&#50857;</label>
             <textarea id="memoContent" name="content" rows="8" required></textarea>
           </div>
-          <div class="wide-field">
-            <label for="memoAttachments">&#52392;&#48512;&#54028;&#51068;</label>
-            <input id="memoAttachments" name="attachments" type="file" multiple>
-          </div>
           <p class="form-message" id="memoFormMessage" role="status"></p>
           <div class="form-actions">
             <button class="secondary-button" id="cancelMemoButton" type="button">&#52712;&#49548;</button>
@@ -260,7 +268,6 @@
                 <th scope="col">&#51228;&#47785;</th>
                 <th scope="col">&#51089;&#49457;&#51088;</th>
                 <th scope="col">&#51089;&#49457;&#45216;&#51676;</th>
-                <th scope="col">&#52392;&#48512;</th>
               </tr>
             </thead>
             <tbody id="memoRows"></tbody>
@@ -287,10 +294,6 @@
           <section class="detail-content" aria-label="memo content">
             <h3>&#45236;&#50857;</h3>
             <div id="memoDetailContent" class="markdown-body"></div>
-          </section>
-          <section class="detail-content hidden" id="memoDetailAttachmentsSection" aria-label="memo attachments">
-            <h3>&#52392;&#48512;&#54028;&#51068;</h3>
-            <div id="memoDetailAttachments" class="attachment-list"></div>
           </section>
         </article>
       </section>
@@ -584,7 +587,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
