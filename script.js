@@ -125,7 +125,6 @@ const menuCalendarButton = document.querySelector("#menuCalendarButton");
 const menuScheduleListButton = document.querySelector("#menuScheduleListButton");
 const menuScheduleCalendarButton = document.querySelector("#menuScheduleCalendarButton");
 const menuMemoListButton = document.querySelector("#menuMemoListButton");
-const boldButton = document.querySelector("#boldButton");
 const prevMonthButton = document.querySelector("#prevMonthButton");
 const nextMonthButton = document.querySelector("#nextMonthButton");
 const boardRows = document.querySelector("#boardRows");
@@ -234,8 +233,7 @@ const postPeriod = document.querySelector("#postPeriod");
 const postHour = document.querySelector("#postHour");
 const postAuthor = document.querySelector("#postAuthor");
 const postContent = document.querySelector("#postContent");
-const contentFontSize = document.querySelector("#contentFontSize");
-const contentColor = document.querySelector("#contentColor");
+const markdownControls = document.querySelectorAll("[data-markdown-action]");
 const postTypeTwo = document.querySelector("#postTypeTwo");
 const participantChoices = document.querySelector("#participantChoices");
 const formMessage = document.querySelector("#formMessage");
@@ -647,8 +645,6 @@ function fillPostForm(post) {
   document.querySelector("#postTitle").value = post.title;
   document.querySelector("#postTopic").value = post.topic;
   postContent.value = post.content || "";
-  contentFontSize.value = post.contentFontSize || "16";
-  contentColor.value = post.contentColor || "#263442";
   postTypeTwo.value = normalizeType(post.type2);
   document.querySelectorAll('input[name="participants"]').forEach((checkbox) => {
     checkbox.checked = post.participants.includes(checkbox.value);
@@ -802,8 +798,61 @@ function setMenuActive(activeButton) {
 }
 
 function applyContentInputStyle() {
-  postContent.style.fontSize = `${contentFontSize.value}px`;
-  postContent.style.color = contentColor.value;
+  postContent.style.fontSize = "16px";
+  postContent.style.color = "#263442";
+}
+
+function replacePostContentSelection(nextValue, selectionStart, selectionEnd) {
+  postContent.value = nextValue;
+  postContent.focus();
+  postContent.setSelectionRange(selectionStart, selectionEnd);
+}
+
+function wrapPostContentSelection(prefix, suffix = prefix, fallback = "text") {
+  const start = postContent.selectionStart;
+  const end = postContent.selectionEnd;
+  const selected = postContent.value.slice(start, end) || fallback;
+  const before = postContent.value.slice(0, start);
+  const after = postContent.value.slice(end);
+  const nextValue = `${before}${prefix}${selected}${suffix}${after}`;
+  const nextStart = start + prefix.length;
+  const nextEnd = nextStart + selected.length;
+  replacePostContentSelection(nextValue, nextStart, nextEnd);
+}
+
+function prefixPostContentLines(prefix, fallback = "text") {
+  const start = postContent.selectionStart;
+  const end = postContent.selectionEnd;
+  const selected = postContent.value.slice(start, end) || fallback;
+  const before = postContent.value.slice(0, start);
+  const after = postContent.value.slice(end);
+  const prefixed = selected
+    .split("\n")
+    .map((line) => line.startsWith(prefix) ? line : `${prefix}${line}`)
+    .join("\n");
+  replacePostContentSelection(`${before}${prefixed}${after}`, start, start + prefixed.length);
+}
+
+function applyMarkdownAction(action) {
+  if (action === "heading") {
+    prefixPostContentLines("### ");
+    return;
+  }
+  if (action === "bold") {
+    wrapPostContentSelection("**");
+    return;
+  }
+  if (action === "italic") {
+    wrapPostContentSelection("*");
+    return;
+  }
+  if (action === "list") {
+    prefixPostContentLines("- ");
+    return;
+  }
+  if (action === "code") {
+    wrapPostContentSelection("`");
+  }
 }
 
 function showListView() {
@@ -1356,19 +1405,6 @@ function renderMarkdown(markdown) {
   }
 
   return html.join("");
-}
-
-function applyBoldToSelection() {
-  const start = postContent.selectionStart;
-  const end = postContent.selectionEnd;
-  const selected = postContent.value.slice(start, end) || "\uad75\uac8c";
-  const before = postContent.value.slice(0, start);
-  const after = postContent.value.slice(end);
-  const replacement = `**${selected}**`;
-
-  postContent.value = `${before}${replacement}${after}`;
-  postContent.focus();
-  postContent.setSelectionRange(start + 2, start + 2 + selected.length);
 }
 
 function formatDateLabel(dateValue, period, hour) {
@@ -2080,8 +2116,8 @@ postForm.addEventListener("submit", async (event) => {
     title: String(formData.get("title")).trim(),
     topic: String(formData.get("topic")).trim(),
     content: String(formData.get("content")).trim(),
-    contentFontSize: String(formData.get("contentFontSize")),
-    contentColor: String(formData.get("contentColor")),
+    contentFontSize: "16",
+    contentColor: "#263442",
     type1: "",
     type2: normalizeType(String(formData.get("type2"))),
     participants,
@@ -2498,7 +2534,9 @@ adminPageButton.addEventListener("click", showAdminView);
 
 saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 
-boldButton.addEventListener("click", applyBoldToSelection);
+markdownControls.forEach((button) => {
+  button.addEventListener("click", () => applyMarkdownAction(button.dataset.markdownAction));
+});
 
 changePasswordButton.addEventListener("click", () => setPasswordModalOpen(true));
 
@@ -2590,10 +2628,6 @@ logoutButton.addEventListener("click", async () => {
     renderWorkList();
     renderWorkDashboard();
   });
-});
-
-[contentFontSize, contentColor].forEach((control) => {
-  control.addEventListener("input", applyContentInputStyle);
 });
 
 populateFormControls();

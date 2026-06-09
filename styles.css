@@ -135,6 +135,33 @@ textarea {
 
 #postContent {
   font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  min-height: 360px;
+}
+
+.markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.post-form .markdown-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  background: #f4f8fb;
+  font-weight: 900;
+}
+
+.post-form .markdown-toolbar button:hover {
+  background: #e2edf6;
 }
 
 input:focus,
@@ -457,42 +484,6 @@ textarea:focus {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-}
-
-.content-style-controls {
-  display: grid;
-  grid-template-columns: 160px 70px 120px;
-  gap: 12px;
-  align-items: end;
-  margin-bottom: 8px;
-}
-
-.content-style-controls input[type="color"] {
-  min-height: 38px;
-  padding: 4px;
-}
-
-.format-button {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--accent);
-  background: #eef4f9;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.tool-label {
-  display: block;
-  margin-bottom: 6px;
-  color: #40505f;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.format-button:hover {
-  background: #dceaf4;
 }
 
 .participants-field legend {
@@ -1875,7 +1866,6 @@ td:nth-child(5) {
   .work-form,
   .schedule-form,
   .memo-form,
-  .content-style-controls,
   .detail-meta {
     grid-template-columns: 1fr;
   }

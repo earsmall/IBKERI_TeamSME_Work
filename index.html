@@ -354,10 +354,6 @@
             <input id="postAuthor" name="authorName" type="text" readonly>
           </div>
           <div>
-            <label for="postTitle">&#51228;&#47785;</label>
-            <input id="postTitle" name="title" type="text" required>
-          </div>
-          <div>
             <label for="postTypeTwo">&#44396;&#48516;</label>
             <select id="postTypeTwo" name="type2" required></select>
           </div>
@@ -366,32 +362,23 @@
             <div id="participantChoices" class="participant-choices"></div>
           </fieldset>
           <div class="wide-field">
+            <label for="postTitle">&#51228;&#47785;</label>
+            <input id="postTitle" name="title" type="text" required>
+          </div>
+          <div class="wide-field">
             <label for="postTopic">&#51452;&#51228;</label>
             <textarea id="postTopic" name="topic" rows="3" required></textarea>
           </div>
           <div class="wide-field">
             <label for="postContent">&#45236;&#50857;</label>
-            <div class="content-style-controls" aria-label="content style">
-              <div>
-                <label for="contentFontSize">&#44544;&#51088;&#53356;&#44592;</label>
-                <select id="contentFontSize" name="contentFontSize">
-                  <option value="14">14px</option>
-                  <option value="16" selected>16px</option>
-                  <option value="18">18px</option>
-                  <option value="20">20px</option>
-                  <option value="24">24px</option>
-                </select>
-              </div>
-              <div>
-                <span class="tool-label">&#48380;&#46300;</span>
-                <button class="format-button" id="boldButton" type="button" title="Bold">B</button>
-              </div>
-              <div>
-                <label for="contentColor">&#44544;&#51088;&#49353;</label>
-                <input id="contentColor" name="contentColor" type="color" value="#263442">
-              </div>
+            <div class="markdown-toolbar" aria-label="markdown controls">
+              <button type="button" data-markdown-action="heading" title="&#51228;&#47785;">#</button>
+              <button type="button" data-markdown-action="bold" title="&#44405;&#44172;">B</button>
+              <button type="button" data-markdown-action="italic" title="&#44592;&#50872;&#51076;">I</button>
+              <button type="button" data-markdown-action="list" title="&#47785;&#47197;">&#8226;</button>
+              <button type="button" data-markdown-action="code" title="&#53076;&#46300;">&lt;/&gt;</button>
             </div>
-            <textarea id="postContent" name="content" rows="5" required></textarea>
+            <textarea id="postContent" name="content" rows="18" required></textarea>
           </div>
           <div class="form-actions wide-field">
             <p class="form-message" id="formMessage" role="status"></p>

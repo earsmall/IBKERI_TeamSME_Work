@@ -15,6 +15,3 @@ Open `index.html` in a browser, or publish this folder with GitHub Pages.
 This is a static GitHub Pages version. It does not provide secure server-side authentication or database storage. Account data and board data are stored in `script.js`.
 
 Posts are saved in the current browser's `localStorage`. On GitHub Pages this means posts are not shared across different team members' browsers unless a backend database is added.
-
-
-https://earsmall.github.io/IBKERI_TeamSME_Work/
