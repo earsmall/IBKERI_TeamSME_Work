@@ -14,9 +14,209 @@ const meetingCollection = db.collection("meetingMinutes");
 const workCollection = db.collection("workStatus");
 const scheduleCollection = db.collection("schedules");
 const memoCollection = db.collection("memos");
+const readingCollection = db.collection("readings");
 const adminRolesRef = db.collection("settings").doc("adminRoles");
 const passwordSettingsRef = db.collection("settings").doc("passwords");
 const userAccessRef = db.collection("settings").doc("userAccess");
+const READINGS_EXPORT_URL = "readings_export.json";
+const READINGS_PAGE_SIZE = 20;
+const LINK_SITE_SECTIONS = [
+  {
+    title: "통계",
+    tone: "tone-stats",
+    note: "통계 원자료와 대시보드 중심으로 정리했습니다.",
+    items: [
+      ["국가데이터처", "https://kosis.kr/index/index.do"],
+      ["한국은행 경제통계시스템", "https://ecos.bok.or.kr/#/"],
+      ["금융통계정보시스템", "https://fisis.fss.or.kr/page/main.jsp"],
+      ["은행통계정보시스템", "http://bss.kfb.or.kr/"],
+      ["산업통계분석시스템", "https://www.istans.or.kr/main.html"],
+      ["중소벤처기업부 통계", "https://www.mss.go.kr/site/smba/submain/submain04.do"],
+      ["중소기업중앙회 조사연구통계", "https://www.kbiz.or.kr/ko/contents/contents/contents.do?mnSeq=317"],
+      ["국가데이터처 빅데이터 활용", "https://data.kostat.go.kr/nowcast/bigmain.do"],
+      ["한국벤처캐피탈협회 통계", "https://www.kvca.or.kr/Program/board/list.html?a_gb=board&a_cd=15&a_item=0&sm=4_1"],
+      ["벤처투자종합포털 통계", "https://www.vcs.go.kr/web/portal/statistics/dashboard"],
+      ["통계데이터센터", "https://data.mods.go.kr/sbchome/index.do"],
+      ["마이크로데이터 통합서비스", "https://mdis.mods.go.kr/index.do"]
+    ]
+  },
+  {
+    title: "정부 부처/유관기관",
+    tone: "tone-gov",
+    note: "정책 자료와 공식 발표를 확인할 수 있는 기관입니다.",
+    items: [
+      ["재정경제부", "https://www.mofe.go.kr/"],
+      ["산업통상부", "https://www.motir.go.kr/"],
+      ["중소벤처기업부", "https://www.mss.go.kr/site/smba/main.do"],
+      ["금융위원회", "https://www.fsc.go.kr/index"],
+      ["금융감독원", "https://www.fss.or.kr/fss/main/main.do?menuNo=200000"],
+      ["한국은행", "https://www.bok.or.kr/portal/main/main.do"],
+      ["은행연합회", "https://www.kfb.or.kr/main/main.php"],
+      ["중소기업중앙회", "https://www.kbiz.or.kr/ko/index/index.do"],
+      ["법제처 국민참여입법센터", "https://opinion.lawmaking.go.kr/"],
+      ["한국벤처캐피탈 협회", "https://www.kvca.or.kr/"],
+      ["벤처투자종합포털", "https://www.vcs.go.kr/web/portal/main"],
+      ["국제금융센터", "https://www.kcif.or.kr/"],
+      ["KDI 정책시계열서비스", "https://epts.kdi.re.kr/polcTmsesSrvc/them"],
+      ["KDI 경제정책정보 최신 경제정책", "https://eiec.kdi.re.kr/policy/materialList.do"],
+      ["KDI 경제정책정보 최신 국내연구", "https://eiec.kdi.re.kr/policy/domesticList.do"]
+    ]
+  },
+  {
+    title: "연구기관",
+    tone: "tone-research",
+    note: "중소기업, 금융, 거시경제 리포트를 참고할 수 있습니다.",
+    items: [
+      ["한국개발연구원", "https://www.kdi.re.kr/"],
+      ["산업연구원", "https://www.kiet.re.kr/"],
+      ["대외경제정책연구원", "https://www.kiep.go.kr/"],
+      ["한국은행 경제연구원", "https://www.bok.or.kr/imer/main/main.do"],
+      ["한국금융연구원", "https://www.kif.re.kr/kif4/main/"],
+      ["중소벤처기업연구원", "https://www.kosi.re.kr/kosbiWar/main"],
+      ["국회예산정책처", "https://www.nabo.go.kr/"],
+      ["국회미래연구원", "https://www.nafi.re.kr/home/kor/main.do"],
+      ["현대경제연구원", "https://www.hri.co.kr/kor/main/main.html"],
+      ["IBK경제연구소", "http://research.ibk.co.kr/research"],
+      ["산업은행 미래전략연구소", "https://rd.kdb.co.kr/index.jsp"],
+      ["수출입은행 해외경제연구소", "https://keri.koreaexim.go.kr/index"],
+      ["우리금융경영연구소", "https://www.wfri.re.kr/ko/web/main.php"],
+      ["하나금융연구소", "https://www.hanaif.re.kr/main.do"],
+      ["KB경영연구소", "https://www.kbfg.com/kbresearch/index.do"]
+    ]
+  },
+  {
+    title: "IBK",
+    tone: "tone-ibk",
+    wide: true,
+    note: "IBK 업무와 교육 관련 바로가기입니다.",
+    items: [
+      ["웹메일", "https://mail.ibk.co.kr/mail/login"],
+      ["EDGE 연수", "https://ibkedge.kbitube.or.kr/platformTubeWeb/CareLogin.do?cmd=moveLogin"],
+      ["IBK에듀", "https://edu.ibk.co.kr/login"],
+      ["법정의무교육", "https://ibk.getsmart.co.kr/members/login?returnUrl=http%3A%2F%2Fibk.getsmart.co.kr%2F"]
+    ]
+  }
+];
+const SME_STATS_GROUPS = [
+  {
+    title: "중소기업",
+    subgroups: [
+      {
+        title: "1. 중소기업 기본통계",
+        items: [
+          ["기업규모별 기업수(중소기업 기본통계, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_BR_A001&conn_path=I2"],
+          ["기업규모별 종사자수(중소기업 기본통계, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_BR_B001&conn_path=I2"],
+          ["매출액(중소기업 기본통계, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_BR_C001&conn_path=I2"]
+        ]
+      },
+      {
+        title: "2. 실물경기",
+        items: [
+          ["중소기업 경기동행지수(중소기업 경기동행지수, 중소기업은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=303&tblId=DT_303005_CI001&conn_path=I2"],
+          ["기업규모별 제조업 생산지수(광업제조업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1F02007&conn_path=I2"],
+          ["중소기업 평균가동률(중소기업경기전망조사, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=340&tblId=DT_D10125&conn_path=I2"],
+          ["시도/산업별 광공업 생산지수(광업제조업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1F02001&conn_path=I2"],
+          ["기업규모별 서비스업 생산지수(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1KC2022&conn_path=I2"],
+          ["음식점 포함 소매판매액지수(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K41017&conn_path=I2"],
+          ["재별 상품군별 소매판매액지수(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K41012&conn_path=I2"],
+          ["산업별 서비스업 생산지수(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1KC2020&conn_path=I2"]
+        ]
+      },
+      {
+        title: "3. 체감경기",
+        items: [
+          ["BSI실적(기업경기조사, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_512Y013&conn_path=I2"],
+          ["BSI전망(기업경기조사, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_512Y014&conn_path=I2"],
+          ["SBHI 실적(중소기업경기전망조사, 중소벤처기업부 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=340&tblId=DT_D10100A&conn_path=I2"],
+          ["SBHI 전망(중소기업경기전망조사, 중소벤처기업부 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=340&tblId=DT_D10100B&conn_path=I2"],
+          ["기업경영상 애로요인(중소기업경기전망조사, 중소벤처기업부 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=340&tblId=DT_D10127&conn_path=I2"]
+        ]
+      }
+    ]
+  },
+  {
+    title: "소상공인, 자영업자",
+    subgroups: [
+      {
+        title: "1. 자영업자 기본현황",
+        items: [
+          ["성/종사상지위별 취업자(경제활동인구조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1DA7028S&conn_path=I2"],
+          ["시도·산업·종사상지위별 종사자수(전국사업체조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K52F01&conn_path=I2"],
+          ["소득5분위별 가구주 종사상지위별 자산, 부채, 소득 현황(가계금융복지조사, 국가데이터처 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1HDAAA13&conn_path=I2"]
+        ]
+      },
+      {
+        title: "2. 실물경기",
+        items: [
+          ["재별 상품군별 판매액(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K41002&conn_path=I2"],
+          ["재별 및 상품군별 소매판매액지수(서비스업동향조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K41012&conn_path=I2"]
+        ]
+      },
+      {
+        title: "3. 체감경기",
+        items: [
+          ["소상공인 부문별 실적 및 전망(소상공인시장경기동향조사, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_S0001N_001&conn_path=I2"],
+          ["소상공인 업종별 실적 및 전망(소상공인시장경기동향조사, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_S0001N_002&conn_path=I2"],
+          ["소상공인 지역별 실적 및 전망(소상공인시장경기동향조사, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_S0001N_005&conn_path=I2"]
+        ]
+      },
+      {
+        title: "4. 창업, 폐업",
+        items: [
+          ["업종별 창업기업수(창업기업동향, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_142N_F201&conn_path=I2"],
+          ["산업별 조직형태별 기업수(기업생멸행정통계, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1BD1106&conn_path=I2"],
+          ["사업자 현황(국세통계, 국세청)", "https://kosis.kr/statHtml/statHtml.do?orgId=133&tblId=DT_133N_981&conn_path=I2"],
+          ["폐업자 현황(국세통계, 국세청)", "https://kosis.kr/statHtml/statHtml.do?orgId=133&tblId=TX_13301_A169&conn_path=I2"]
+        ]
+      }
+    ]
+  },
+  {
+    title: "중소기업 금융",
+    subgroups: [
+      {
+        title: "1. 대출금, 금리",
+        items: [
+          ["예금은행 기업규모별 산업별대출금(통화금융통계, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_131Y018&conn_path=I2"],
+          ["예금은행 시설, 운전자금 대출(통화금융통계, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_141Y004&conn_path=I2"],
+          ["대출금리, 신규취급액 기준(통화금융통계, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_121Y006&conn_path=I2"],
+          ["대출금리, 잔액 기준(통화금융통계, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_121Y015&conn_path=I2"]
+        ]
+      },
+      {
+        title: "2. 대출행태 서베이",
+        items: [
+          ["대출태도(금융기관대출행태조사, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_514Y001&conn_path=I2"],
+          ["신용위험(금융기관대출행태조사, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_514Y002&conn_path=I2"],
+          ["대출 수요(금융기관대출행태조사, 한국은행)", "https://kosis.kr/statHtml/statHtml.do?orgId=301&tblId=DT_514Y003&conn_path=I2"]
+        ]
+      }
+    ]
+  },
+  {
+    title: "수출 중소기업",
+    subgroups: [
+      {
+        title: "주요 수출 통계",
+        items: [
+          ["기업규모별 수출입(기업특성별무역통계, 국가데이터처 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1TEC_P116&conn_path=I2"],
+          ["기업규모별, 주요국가별 수출입(기업특성별무역통계, 국가데이터처 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1TEC_P227&conn_path=I2"],
+          ["산업별, 기업규모별 수출입(기업특성별무역통계, 국가데이터처 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1TEC_P116&conn_path=I2"],
+          ["대륙별, 국가별 중소기업 수출(중소기업수출동향, 중소벤처기업부)", "https://kosis.kr/statHtml/statHtml.do?orgId=142&tblId=DT_B10066&conn_path=I2"]
+        ]
+      }
+    ]
+  }
+];
+const DASHBOARDS = [
+  ["sme-overview", "중소기업 주요 현황", "중소기업 전반의 핵심 흐름을 빠르게 확인할 수 있는 기본 현황 대시보드입니다.", "https://public.tableau.com/views/__17502119731210/sheet30?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["self-employed-overview", "자영업자 주요 현황", "자영업자 관련 주요 지표를 같은 레이아웃으로 확인할 수 있도록 연결했습니다.", "https://public.tableau.com/views/__17502333777740/sheet26?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["export-sme-overview", "수출 중소기업 주요 현황", "수출 중소기업의 실적과 흐름을 집중해서 볼 수 있는 대시보드입니다.", "https://public.tableau.com/views/__17502346824890/sheet0_1?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["bank-loan-market", "은행권 중소기업대출 시장 현황", "은행권의 중소기업대출 시장 규모와 동향을 살펴볼 수 있습니다.", "https://public.tableau.com/views/__17478138225250/sheet12?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["venture-investment", "벤처투자 현황", "벤처투자 관련 지표를 빠르게 점검할 수 있는 시각화입니다.", "https://public.tableau.com/views/__17742427007920/sheet0?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["domestic-bank-overview", "국내은행 주요 현황", "국내은행의 핵심 현황을 요약해서 살펴볼 수 있는 대시보드입니다.", "https://public.tableau.com/views/__17512724069940/sheet16?:language=ko-KR&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"],
+  ["bok-fsa", "한국은행 연간 기업경영분석 주요 결과", "한국은행 기업경영분석의 주요 결과를 시각적으로 정리한 대시보드입니다.", "https://public.tableau.com/views/___17744202844510/sheet5?:language=ko-KR&publish=yes&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"]
+].map(([id, title, description, url]) => ({ id, title, description, url }));
 
 function doc(database, collectionName, id) {
   return database.collection(collectionName).doc(id);
@@ -100,6 +300,9 @@ let boardItems = [];
 let workItems = [];
 let scheduleItems = [];
 let memoItems = [];
+let baseReadingItems = [];
+let firestoreReadingItems = [];
+let readingItems = [];
 
 const loginView = document.querySelector("#loginView");
 const boardView = document.querySelector("#boardView");
@@ -122,8 +325,13 @@ const menuWorkDashboardButton = document.querySelector("#menuWorkDashboardButton
 const menuWorkListButton = document.querySelector("#menuWorkListButton");
 const menuListButton = document.querySelector("#menuListButton");
 const menuCalendarButton = document.querySelector("#menuCalendarButton");
+const menuReadingsListButton = document.querySelector("#menuReadingsListButton");
+const menuReadingsButton = document.querySelector("#menuReadingsButton");
 const menuScheduleListButton = document.querySelector("#menuScheduleListButton");
 const menuScheduleCalendarButton = document.querySelector("#menuScheduleCalendarButton");
+const menuSmeStatsButton = document.querySelector("#menuSmeStatsButton");
+const menuDashboardButton = document.querySelector("#menuDashboardButton");
+const menuLinkSitesButton = document.querySelector("#menuLinkSitesButton");
 const menuMemoListButton = document.querySelector("#menuMemoListButton");
 const prevMonthButton = document.querySelector("#prevMonthButton");
 const nextMonthButton = document.querySelector("#nextMonthButton");
@@ -178,6 +386,49 @@ const scheduleCalendarGrid = document.querySelector("#scheduleCalendarGrid");
 const scheduleCalendarTitle = document.querySelector("#scheduleCalendarTitle");
 const prevScheduleMonthButton = document.querySelector("#prevScheduleMonthButton");
 const nextScheduleMonthButton = document.querySelector("#nextScheduleMonthButton");
+const linkSitesPanel = document.querySelector("#linkSitesPanel");
+const linkSitesGrid = document.querySelector("#linkSitesGrid");
+const smeStatsPanel = document.querySelector("#smeStatsPanel");
+const smeStatsList = document.querySelector("#smeStatsList");
+const dashboardPanel = document.querySelector("#dashboardPanel");
+const dashboardSelect = document.querySelector("#dashboardSelect");
+const dashboardHelper = document.querySelector("#dashboardHelper");
+const dashboardViewerTitle = document.querySelector("#dashboardViewerTitle");
+const dashboardVizMount = document.querySelector("#dashboardVizMount");
+const dashboardZoomRange = document.querySelector("#dashboardZoomRange");
+const dashboardZoomValue = document.querySelector("#dashboardZoomValue");
+const dashboardZoomReset = document.querySelector("#dashboardZoomReset");
+const readingsPanel = document.querySelector("#readingsPanel");
+const readingsCalendarGrid = document.querySelector("#readingsCalendarGrid");
+const readingsCalendarTitle = document.querySelector("#readingsCalendarTitle");
+const readingsSelectedTitle = document.querySelector("#readingsSelectedTitle");
+const readingsMeta = document.querySelector("#readingsMeta");
+const readingsList = document.querySelector("#readingsList");
+const readingsEmptyState = document.querySelector("#readingsEmptyState");
+const readingsSearchInput = document.querySelector("#readingsSearchInput");
+const readingsStartDateFilter = document.querySelector("#readingsStartDateFilter");
+const readingsEndDateFilter = document.querySelector("#readingsEndDateFilter");
+const clearReadingsFiltersButton = document.querySelector("#clearReadingsFiltersButton");
+const readingsListTabButton = document.querySelector("#readingsListTabButton");
+const readingsCalendarTabButton = document.querySelector("#readingsCalendarTabButton");
+const readingsBoardPanel = document.querySelector("#readingsBoardPanel");
+const readingsTableRows = document.querySelector("#readingsTableRows");
+const readingsTableEmptyState = document.querySelector("#readingsTableEmptyState");
+const readingsPagination = document.querySelector("#readingsPagination");
+const prevReadingsMonthButton = document.querySelector("#prevReadingsMonthButton");
+const nextReadingsMonthButton = document.querySelector("#nextReadingsMonthButton");
+const todayReadingsButton = document.querySelector("#todayReadingsButton");
+const openReadingSubmissionButton = document.querySelector("#openReadingSubmissionButton");
+const readingSubmissionModal = document.querySelector("#readingSubmissionModal");
+const readingSubmissionForm = document.querySelector("#readingSubmissionForm");
+const readingSubmissionTitle = document.querySelector("#readingSubmissionTitle");
+const readingSubmissionDate = document.querySelector("#readingSubmissionDate");
+const readingSubmissionSubmitter = document.querySelector("#readingSubmissionSubmitter");
+const readingSubmissionDetails = document.querySelector("#readingSubmissionDetails");
+const readingMarkdownControls = document.querySelectorAll("[data-reading-markdown-action]");
+const readingSubmissionMessage = document.querySelector("#readingSubmissionMessage");
+const closeReadingSubmissionButton = document.querySelector("#closeReadingSubmissionButton");
+const cancelReadingSubmissionButton = document.querySelector("#cancelReadingSubmissionButton");
 const memoFormPanel = document.querySelector("#memoFormPanel");
 const memoForm = document.querySelector("#memoForm");
 const memoFormTitle = document.querySelector("#memoFormTitle");
@@ -257,10 +508,20 @@ let editingPostId = null;
 let editingWorkId = null;
 let editingScheduleId = null;
 let editingMemoId = null;
+let editingReadingId = null;
+let editingReadingOriginalKey = null;
 let activeView = "work-dashboard";
 let workDetailReturnView = "work-list";
 let currentCalendarDate = new Date();
 let currentScheduleCalendarDate = new Date();
+let currentReadingsCalendarDate = new Date();
+let selectedReadingDate = getLocalDateValue(new Date());
+let selectedReadingDetailKey = "";
+let currentReadingsPage = 1;
+let selectedDashboardId = DASHBOARDS[0]?.id || "";
+let dashboardUserZoom = 1;
+let hasTriedLoadingBaseReadings = false;
+let activeReadingsView = "list";
 let adminRoleMap = {};
 let passwordHashMap = {};
 let disabledUserIds = [];
@@ -514,6 +775,14 @@ function startFirestoreListeners() {
     renderMemoList();
   }, (error) => {
     console.error("Failed to load memos.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(readingCollection, (snapshot) => {
+    firestoreReadingItems = snapshot.docs.map((item) => normalizeFirestoreReadingItem(item.id, item.data()));
+    mergeReadingItems();
+    renderReadings();
+  }, (error) => {
+    console.error("Failed to load readings from Firestore.", error);
   }));
 }
 
@@ -770,6 +1039,10 @@ function hideMainPanels() {
   scheduleFormPanel.classList.add("hidden");
   scheduleListPanel.classList.add("hidden");
   scheduleCalendarPanel.classList.add("hidden");
+  linkSitesPanel.classList.add("hidden");
+  smeStatsPanel.classList.add("hidden");
+  dashboardPanel.classList.add("hidden");
+  readingsPanel.classList.add("hidden");
   memoFormPanel.classList.add("hidden");
   memoListPanel.classList.add("hidden");
   memoDetailPanel.classList.add("hidden");
@@ -792,7 +1065,7 @@ function hideMainPanels() {
 }
 
 function setMenuActive(activeButton) {
-  [menuWorkDashboardButton, menuWorkListButton, menuListButton, menuCalendarButton, menuScheduleListButton, menuScheduleCalendarButton, menuMemoListButton].forEach((button) => {
+  [menuWorkDashboardButton, menuWorkListButton, menuListButton, menuCalendarButton, menuReadingsListButton, menuReadingsButton, menuSmeStatsButton, menuDashboardButton, menuLinkSitesButton, menuMemoListButton, menuScheduleListButton, menuScheduleCalendarButton].forEach((button) => {
     button.classList.toggle("active", button === activeButton);
   });
 }
@@ -855,6 +1128,258 @@ function applyMarkdownAction(action) {
   }
 }
 
+function replaceReadingDetailsSelection(nextValue, selectionStart, selectionEnd) {
+  readingSubmissionDetails.value = nextValue;
+  readingSubmissionDetails.focus();
+  readingSubmissionDetails.setSelectionRange(selectionStart, selectionEnd);
+}
+
+function wrapReadingDetailsSelection(prefix, suffix = prefix, fallback = "text") {
+  const start = readingSubmissionDetails.selectionStart;
+  const end = readingSubmissionDetails.selectionEnd;
+  const selected = readingSubmissionDetails.value.slice(start, end) || fallback;
+  const before = readingSubmissionDetails.value.slice(0, start);
+  const after = readingSubmissionDetails.value.slice(end);
+  const nextValue = `${before}${prefix}${selected}${suffix}${after}`;
+  const nextStart = start + prefix.length;
+  const nextEnd = nextStart + selected.length;
+  replaceReadingDetailsSelection(nextValue, nextStart, nextEnd);
+}
+
+function prefixReadingDetailsLines(prefix, fallback = "text") {
+  const start = readingSubmissionDetails.selectionStart;
+  const end = readingSubmissionDetails.selectionEnd;
+  const selected = readingSubmissionDetails.value.slice(start, end) || fallback;
+  const before = readingSubmissionDetails.value.slice(0, start);
+  const after = readingSubmissionDetails.value.slice(end);
+  const prefixed = selected
+    .split("\n")
+    .map((line) => line.startsWith(prefix) ? line : `${prefix}${line}`)
+    .join("\n");
+  replaceReadingDetailsSelection(`${before}${prefixed}${after}`, start, start + prefixed.length);
+}
+
+function applyReadingMarkdownAction(action) {
+  if (action === "heading") {
+    prefixReadingDetailsLines("### ");
+    return;
+  }
+  if (action === "bold") {
+    wrapReadingDetailsSelection("**");
+    return;
+  }
+  if (action === "italic") {
+    wrapReadingDetailsSelection("*");
+    return;
+  }
+  if (action === "list") {
+    prefixReadingDetailsLines("- ");
+    return;
+  }
+  if (action === "code") {
+    wrapReadingDetailsSelection("`");
+  }
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function splitStatText(text) {
+  const match = text.match(/^(.*?)(?:\(([^()]*)\))$/);
+  if (!match) return { title: text, meta: "" };
+  return { title: match[1].trim(), meta: match[2].trim() };
+}
+
+function formatStatMeta(meta) {
+  if (!meta) return "";
+  const parts = meta.split(",");
+  const lead = parts.shift()?.trim() || "";
+  const rest = parts.join(",").trim();
+  return lead ? `< ${lead} >${rest ? `, ${rest}` : ""}` : meta;
+}
+
+function renderSmeStats() {
+  smeStatsList.replaceChildren();
+  SME_STATS_GROUPS.forEach((group) => {
+    const major = document.createElement("article");
+    major.className = "sme-major-card";
+
+    const head = document.createElement("div");
+    head.className = "sme-major-head";
+    const title = document.createElement("h2");
+    title.textContent = group.title;
+    head.append(title);
+
+    const subGrid = document.createElement("div");
+    subGrid.className = "sme-sub-grid";
+
+    group.subgroups.forEach((subgroup) => {
+      const sub = document.createElement("section");
+      sub.className = "sme-sub-card";
+
+      const subTitle = document.createElement("h3");
+      subTitle.textContent = subgroup.title;
+
+      const list = document.createElement("div");
+      list.className = "sme-stat-link-list";
+
+      subgroup.items.forEach(([itemTitle, url]) => {
+        const parts = splitStatText(itemTitle);
+        const link = document.createElement("a");
+        link.className = "sme-stat-chip";
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        const content = document.createElement("span");
+        content.className = "sme-stat-chip-content";
+
+        const name = document.createElement("span");
+        name.className = "sme-stat-chip-title";
+        name.textContent = parts.title;
+        content.append(name);
+
+        if (parts.meta) {
+          const meta = document.createElement("span");
+          meta.className = "sme-stat-chip-meta";
+          meta.textContent = formatStatMeta(parts.meta);
+          content.append(meta);
+        }
+
+        link.append(content);
+        list.append(link);
+      });
+
+      sub.append(subTitle, list);
+      subGrid.append(sub);
+    });
+
+    major.append(head, subGrid);
+    smeStatsList.append(major);
+  });
+}
+
+function getDashboardViewportPreset() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (width <= 640) return { device: "phone", targetWidth: 390, baseHeight: 760 };
+  if (width <= 1280) return { device: "tablet", targetWidth: 1100, baseHeight: 700 };
+  if (width >= 2200 && height >= 1200) return { device: "desktop", targetWidth: 1600, baseHeight: Math.max(940, height - 90) };
+  return { device: "desktop", targetWidth: 1366, baseHeight: 720 };
+}
+
+function syncDashboardZoomControl() {
+  const percent = Math.round(dashboardUserZoom * 100);
+  dashboardZoomRange.value = String(percent);
+  dashboardZoomValue.textContent = `${percent}%`;
+}
+
+function updateDashboardVizScale() {
+  const frame = document.querySelector(".dashboard-frame");
+  const stage = document.querySelector(".dashboard-viz-stage");
+  if (!frame || !stage) return;
+
+  const preset = getDashboardViewportPreset();
+  const autoScale = clampNumber(frame.clientWidth / preset.targetWidth, 0.24, 1);
+  const effectiveScale = clampNumber(autoScale * dashboardUserZoom, 0.24, 1.3);
+  frame.style.setProperty("--dashboard-effective-scale", effectiveScale.toFixed(3));
+  frame.style.setProperty("--dashboard-base-height", `${Math.round(preset.baseHeight)}px`);
+  frame.style.setProperty("--dashboard-target-width", `${preset.targetWidth}px`);
+}
+
+function getSelectedDashboard() {
+  return DASHBOARDS.find((item) => item.id === selectedDashboardId) || DASHBOARDS[0] || null;
+}
+
+function renderDashboardPicker(selectedDashboard) {
+  dashboardSelect.replaceChildren();
+  DASHBOARDS.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.title;
+    option.selected = selectedDashboard?.id === item.id;
+    dashboardSelect.append(option);
+  });
+  dashboardHelper.textContent = selectedDashboard?.description || "";
+}
+
+function renderDashboardViz(selectedDashboard) {
+  const preset = getDashboardViewportPreset();
+  if (!selectedDashboard) {
+    dashboardVizMount.className = "dashboard-empty";
+    dashboardVizMount.textContent = "표시할 대시보드가 없습니다.";
+    return;
+  }
+
+  dashboardVizMount.className = "";
+  dashboardVizMount.dataset.device = preset.device;
+  dashboardVizMount.replaceChildren();
+
+  const wrap = document.createElement("div");
+  wrap.className = "dashboard-viz-stage-wrap";
+  const stage = document.createElement("div");
+  stage.className = "dashboard-viz-stage";
+  const viz = document.createElement("tableau-viz");
+  viz.id = "tableauViz";
+  viz.setAttribute("src", selectedDashboard.url);
+  viz.setAttribute("toolbar", "bottom");
+  viz.setAttribute("hide-tabs", "");
+  viz.setAttribute("device", preset.device);
+
+  stage.append(viz);
+  wrap.append(stage);
+  dashboardVizMount.append(wrap);
+
+  requestAnimationFrame(updateDashboardVizScale);
+  setTimeout(updateDashboardVizScale, 600);
+  setTimeout(updateDashboardVizScale, 1400);
+}
+
+function renderDashboard() {
+  const selectedDashboard = getSelectedDashboard();
+  renderDashboardPicker(selectedDashboard);
+  dashboardViewerTitle.textContent = selectedDashboard?.title || "대시보드 보기";
+  dashboardHelper.textContent = selectedDashboard?.description || "";
+  renderDashboardViz(selectedDashboard);
+  syncDashboardZoomControl();
+}
+
+function renderLinkSites() {
+  linkSitesGrid.replaceChildren();
+  LINK_SITE_SECTIONS.forEach((section) => {
+    const card = document.createElement("article");
+    card.className = `link-site-card ${section.tone || ""}${section.wide ? " is-wide" : ""}`;
+
+    const head = document.createElement("div");
+    head.className = "link-site-head";
+
+    const title = document.createElement("h2");
+    title.textContent = section.title;
+
+    const note = document.createElement("p");
+    note.textContent = section.note;
+
+    head.append(title, note);
+
+    const list = document.createElement("div");
+    list.className = "link-site-list";
+
+    section.items.forEach(([itemTitle, url]) => {
+      const link = document.createElement("a");
+      link.className = "link-site-chip";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = itemTitle;
+      list.append(link);
+    });
+
+    card.append(head, list);
+    linkSitesGrid.append(card);
+  });
+}
+
 function showListView() {
   const user = getCurrentUser();
   activeView = "meeting-list";
@@ -880,6 +1405,54 @@ function showCalendarView() {
   newPostButton.classList.remove("hidden");
   setMenuActive(menuCalendarButton);
   renderCalendar();
+}
+
+function showReadingsView() {
+  activeView = "readings";
+  hideMainPanels();
+  viewHeading.textContent = "\uc77d\uc744\uac70\ub9ac";
+  viewHeading.classList.remove("hidden");
+  readingsPanel.classList.remove("hidden");
+  newPostButton.classList.add("hidden");
+  setMenuActive(activeReadingsView === "list" ? menuReadingsListButton : menuReadingsButton);
+  if (!hasTriedLoadingBaseReadings) {
+    loadReadings();
+    return;
+  }
+  renderReadings();
+}
+
+function showLinkSitesView() {
+  activeView = "link-sites";
+  hideMainPanels();
+  viewHeading.textContent = "링크사이트";
+  viewHeading.classList.remove("hidden");
+  linkSitesPanel.classList.remove("hidden");
+  newPostButton.classList.add("hidden");
+  setMenuActive(menuLinkSitesButton);
+  renderLinkSites();
+}
+
+function showSmeStatsView() {
+  activeView = "sme-stats";
+  hideMainPanels();
+  viewHeading.textContent = "중소기업 통계";
+  viewHeading.classList.remove("hidden");
+  smeStatsPanel.classList.remove("hidden");
+  newPostButton.classList.add("hidden");
+  setMenuActive(menuSmeStatsButton);
+  renderSmeStats();
+}
+
+function showDashboardView() {
+  activeView = "dashboard";
+  hideMainPanels();
+  viewHeading.textContent = "시각화 대쉬보드";
+  viewHeading.classList.remove("hidden");
+  dashboardPanel.classList.remove("hidden");
+  newPostButton.classList.add("hidden");
+  setMenuActive(menuDashboardButton);
+  renderDashboard();
 }
 
 function showScheduleListView() {
@@ -1096,6 +1669,521 @@ function renderCalendar() {
 
     calendarGrid.append(cell);
   }
+}
+
+function parseReadingDate(value) {
+  const text = String(value || "");
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
+}
+
+function formatKoreanDateLabel(dateValue) {
+  if (!dateValue) return "";
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  const weekdays = ["\uc77c\uc694\uc77c", "\uc6d4\uc694\uc77c", "\ud654\uc694\uc77c", "\uc218\uc694\uc77c", "\ubaa9\uc694\uc77c", "\uae08\uc694\uc77c", "\ud1a0\uc694\uc77c"];
+  return `${year}\ub144 ${month}\uc6d4 ${day}\uc77c ${weekdays[date.getDay()]}`;
+}
+
+function normalizeReadingItem(item) {
+  const date = parseReadingDate(item.date || item.isoDate || item.dateLabel);
+  const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+  return {
+    id: item.id || "",
+    originalKey: String(item.originalKey || ""),
+    source: String(item.source || ""),
+    deleted: item.deleted === true,
+    date,
+    dateLabel: item.dateLabel || formatKoreanDateLabel(date),
+    agency: String(item.agency || ""),
+    title: String(item.title || ""),
+    details: String(item.details || ""),
+    attachments,
+    link: String(item.link || ""),
+    submitter: String(item.submitter || ""),
+    savedAt: String(item.savedAt || item.createdAt || ""),
+    authorId: String(item.authorId || ""),
+    authorName: String(item.authorName || item.submitter || "")
+  };
+}
+
+function normalizeFirestoreReadingItem(id, item) {
+  return normalizeReadingItem({
+    ...item,
+    id,
+    source: "firestore",
+    submitter: item.submitter || item.authorName || getUserName(item.authorId)
+  });
+}
+
+function sortReadings(items) {
+  return [...items].sort((a, b) => {
+    const dateCompare = b.date.localeCompare(a.date);
+    if (dateCompare) return dateCompare;
+    return (b.savedAt || "").localeCompare(a.savedAt || "");
+  });
+}
+
+function getReadingKey(item) {
+  return item.originalKey || item.id || item.savedAt || [item.date, item.title, item.link].join("|");
+}
+
+function getReadingDateCount(items = readingItems) {
+  return new Set(items.map((item) => item.date).filter(Boolean)).size;
+}
+
+function hasActiveReadingFilters() {
+  return Boolean(
+    readingsSearchInput.value.trim()
+    || readingsStartDateFilter.value
+    || readingsEndDateFilter.value
+  );
+}
+
+function getFilteredReadings() {
+  const query = readingsSearchInput.value.trim().toLowerCase();
+  const start = readingsStartDateFilter.value;
+  const end = readingsEndDateFilter.value;
+
+  return readingItems.filter((item) => {
+    const searchText = [item.agency, item.title].join(" ").toLowerCase();
+    const matchesQuery = !query || searchText.includes(query);
+    const matchesStart = !start || item.date >= start;
+    const matchesEnd = !end || item.date <= end;
+    return matchesQuery && matchesStart && matchesEnd;
+  });
+}
+
+function canManageReadingItem(item) {
+  const user = getCurrentUser();
+  if (!item || !user) return false;
+  if (!item.id) return isAdminUser(user);
+  return isAdminUser(user) || item.authorId === user.id || (!item.authorId && item.submitter === user.name);
+}
+
+function mergeReadingItems() {
+  const seen = new Set();
+  const merged = [];
+
+  sortReadings(firestoreReadingItems).forEach((item) => {
+    const key = getReadingKey(item);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    if (!item.deleted && item.date && item.title) {
+      merged.push(item);
+    }
+  });
+
+  sortReadings(baseReadingItems).forEach((item) => {
+    const key = getReadingKey(item);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    if (!item.deleted && item.date && item.title) {
+      merged.push(item);
+    }
+  });
+
+  readingItems = sortReadings(merged);
+}
+
+function getReadingsByDate(items = readingItems) {
+  const grouped = new Map();
+  items.forEach((item) => {
+    if (!item.date) return;
+    if (!grouped.has(item.date)) grouped.set(item.date, []);
+    grouped.get(item.date).push(item);
+  });
+  grouped.forEach((items, date) => grouped.set(date, sortReadings(items)));
+  return grouped;
+}
+
+function ensureSelectedReadingDate(grouped, items = readingItems) {
+  if (selectedReadingDate && grouped.has(selectedReadingDate)) return;
+  selectedReadingDate = sortReadings(items)[0]?.date || getLocalDateValue(new Date());
+  if (selectedReadingDate) {
+    const [year, month] = selectedReadingDate.split("-").map(Number);
+    currentReadingsCalendarDate = new Date(year, month - 1, 1);
+  }
+}
+
+function renderReadings({ preserveSelectedDate = false } = {}) {
+  const filteredItems = getFilteredReadings();
+  const grouped = getReadingsByDate(filteredItems);
+  if (!preserveSelectedDate) {
+    ensureSelectedReadingDate(grouped, filteredItems);
+  }
+  renderReadingsTabs();
+  renderReadingsBoard(filteredItems);
+  renderReadingsCalendar(grouped);
+  renderSelectedReadings(grouped, filteredItems);
+}
+
+function renderReadingsTabs() {
+  const isList = activeReadingsView === "list";
+  readingsListTabButton.classList.toggle("active", isList);
+  readingsCalendarTabButton.classList.toggle("active", !isList);
+  setMenuActive(isList ? menuReadingsListButton : menuReadingsButton);
+  readingsBoardPanel.classList.toggle("hidden", !isList);
+  document.querySelector(".readings-layout").classList.toggle("hidden", isList);
+}
+
+function renderReadingsBoard(items) {
+  readingsTableRows.replaceChildren();
+  readingsTableEmptyState.classList.toggle("hidden", items.length > 0);
+
+  const sortedItems = sortReadings(items);
+  const pageCount = Math.max(1, Math.ceil(sortedItems.length / READINGS_PAGE_SIZE));
+  currentReadingsPage = Math.min(Math.max(currentReadingsPage, 1), pageCount);
+  const startIndex = (currentReadingsPage - 1) * READINGS_PAGE_SIZE;
+  const pageItems = sortedItems.slice(startIndex, startIndex + READINGS_PAGE_SIZE);
+
+  pageItems.forEach((item) => {
+    const itemKey = getReadingKey(item);
+    const row = document.createElement("tr");
+    row.className = "clickable-row";
+    row.classList.toggle("selected", itemKey === selectedReadingDetailKey);
+
+    const date = document.createElement("td");
+    const title = document.createElement("td");
+    const agency = document.createElement("td");
+    const submitter = document.createElement("td");
+
+    date.textContent = item.date || "";
+    title.textContent = item.title || "";
+    agency.textContent = item.agency || "";
+    submitter.textContent = item.submitter || item.authorName || "";
+
+    row.append(date, title, agency, submitter);
+    row.addEventListener("click", () => showReadingDetailFromList(itemKey, item));
+    readingsTableRows.append(row);
+
+    if (itemKey === selectedReadingDetailKey) {
+      const detailRow = document.createElement("tr");
+      detailRow.className = "readings-inline-detail-row";
+
+      const detailCell = document.createElement("td");
+      detailCell.colSpan = 4;
+      detailCell.append(createReadingCard(item));
+
+      detailRow.append(detailCell);
+      readingsTableRows.append(detailRow);
+    }
+  });
+  renderReadingsPagination(sortedItems.length, pageCount);
+}
+
+function showReadingDetailFromList(itemKey, item) {
+  selectedReadingDetailKey = selectedReadingDetailKey === itemKey ? "" : itemKey;
+  selectedReadingDate = item.date;
+  renderReadings({ preserveSelectedDate: true });
+}
+
+function renderReadingsPagination(totalCount, pageCount) {
+  readingsPagination.replaceChildren();
+  readingsPagination.classList.toggle("hidden", totalCount <= READINGS_PAGE_SIZE);
+  if (totalCount <= READINGS_PAGE_SIZE) return;
+
+  const prev = document.createElement("button");
+  prev.className = "ghost-button";
+  prev.type = "button";
+  prev.textContent = "\uc774\uc804";
+  prev.disabled = currentReadingsPage <= 1;
+  prev.addEventListener("click", () => {
+    currentReadingsPage -= 1;
+    renderReadings({ preserveSelectedDate: true });
+  });
+
+  const info = document.createElement("span");
+  info.className = "readings-pagination-info";
+  const start = (currentReadingsPage - 1) * READINGS_PAGE_SIZE + 1;
+  const end = Math.min(currentReadingsPage * READINGS_PAGE_SIZE, totalCount);
+  info.textContent = `${start}-${end} / ${totalCount} (\ud398\uc774\uc9c0 ${currentReadingsPage}/${pageCount})`;
+
+  const next = document.createElement("button");
+  next.className = "ghost-button";
+  next.type = "button";
+  next.textContent = "\ub2e4\uc74c";
+  next.disabled = currentReadingsPage >= pageCount;
+  next.addEventListener("click", () => {
+    currentReadingsPage += 1;
+    renderReadings({ preserveSelectedDate: true });
+  });
+
+  readingsPagination.append(prev, info, next);
+}
+
+function renderReadingsCalendar(grouped) {
+  const year = currentReadingsCalendarDate.getFullYear();
+  const month = currentReadingsCalendarDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  readingsCalendarTitle.textContent = `${year}.${String(month + 1).padStart(2, "0")}`;
+  readingsCalendarGrid.replaceChildren();
+
+  for (let index = 0; index < firstDay.getDay(); index += 1) {
+    const blank = document.createElement("div");
+    blank.className = "calendar-day muted";
+    readingsCalendarGrid.append(blank);
+  }
+
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    const dateValue = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const items = grouped.get(dateValue) || [];
+    const cell = document.createElement("button");
+    cell.className = "calendar-day readings-day";
+    cell.type = "button";
+    cell.disabled = items.length === 0;
+    cell.classList.toggle("has-readings", items.length > 0);
+    cell.classList.toggle("active", dateValue === selectedReadingDate);
+
+    const dayNumber = document.createElement("span");
+    dayNumber.className = "calendar-day-number";
+    dayNumber.textContent = String(day);
+    cell.append(dayNumber);
+
+    if (items.length > 0) {
+      const count = document.createElement("span");
+      count.className = "readings-count";
+      count.textContent = `${items.length}\uac1c`;
+      cell.append(count);
+    }
+
+    cell.addEventListener("click", () => {
+      selectedReadingDate = dateValue;
+      renderReadings();
+    });
+    readingsCalendarGrid.append(cell);
+  }
+}
+
+function createReadingCard(item) {
+  const card = document.createElement("article");
+  card.className = "reading-card";
+
+  const top = document.createElement("div");
+  top.className = "reading-card-top";
+
+  const agency = document.createElement("span");
+  agency.className = "reading-agency";
+  agency.textContent = item.agency || "\uae30\uad00 \ubbf8\uc785\ub825";
+
+  const submitter = document.createElement("span");
+  submitter.className = "reading-submitter";
+  submitter.textContent = item.submitter ? `\ub4f1\ub85d ${item.submitter}` : "";
+
+  const title = document.createElement("a");
+  title.className = "reading-title";
+  title.href = item.link || "#";
+  title.target = "_blank";
+  title.rel = "noopener noreferrer";
+  title.textContent = item.title || "\uc81c\ubaa9 \uc5c6\uc74c";
+
+  const details = document.createElement("p");
+  details.className = "reading-details";
+  details.innerHTML = renderMarkdown(item.details || "\uc8fc\uc694 \ub0b4\uc6a9\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.");
+
+  top.append(agency, submitter);
+  card.append(top, title, details);
+
+  if (item.link) {
+    const sourceLink = document.createElement("a");
+    sourceLink.className = "reading-source-link";
+    sourceLink.href = item.link;
+    sourceLink.target = "_blank";
+    sourceLink.rel = "noopener noreferrer";
+    sourceLink.textContent = "\uc6d0\ubb38 \ub9c1\ud06c";
+    card.append(sourceLink);
+  }
+
+  if (canManageReadingItem(item)) {
+    const actions = document.createElement("div");
+    actions.className = "reading-card-actions";
+
+    const edit = document.createElement("button");
+    edit.className = "ghost-button";
+    edit.type = "button";
+    edit.textContent = "\uc218\uc815";
+    edit.addEventListener("click", () => {
+      fillReadingSubmissionForm(item);
+      setReadingSubmissionOpen(true);
+    });
+
+    const remove = document.createElement("button");
+    remove.className = "danger-button";
+    remove.type = "button";
+    remove.textContent = "\uc0ad\uc81c";
+    remove.addEventListener("click", () => {
+      requestDelete(async () => {
+        if (item.id) {
+          await deleteDoc(doc(db, "readings", item.id));
+          return;
+        }
+        const user = getCurrentUser();
+        await addDoc(readingCollection, {
+          originalKey: getReadingKey(item),
+          deleted: true,
+          authorId: user?.id || "",
+          authorName: user?.name || "",
+          createdAt: new Date().toISOString()
+        });
+      });
+    });
+
+    actions.append(edit, remove);
+    card.append(actions);
+  }
+
+  if (item.attachments.length > 0) {
+    const attachmentList = document.createElement("div");
+    attachmentList.className = "reading-attachments";
+    item.attachments.forEach((attachment) => {
+      const href = attachment.href || attachment.url || attachment.link || "";
+      const label = attachment.label || attachment.name || "\ucca8\ubd80";
+      if (!href) return;
+      const attachmentLink = document.createElement("a");
+      attachmentLink.href = href;
+      attachmentLink.target = "_blank";
+      attachmentLink.rel = "noopener noreferrer";
+      attachmentLink.textContent = label;
+      attachmentList.append(attachmentLink);
+    });
+    if (attachmentList.childElementCount) card.append(attachmentList);
+  }
+
+  return card;
+}
+
+function renderSelectedReadings(grouped, filteredItems = readingItems) {
+  const items = grouped.get(selectedReadingDate) || [];
+  readingsList.replaceChildren();
+  readingsSelectedTitle.textContent = formatKoreanDateLabel(selectedReadingDate);
+  const filterText = hasActiveReadingFilters() ? ` · \ud544\ud130 ${filteredItems.length}\uac1c/${getReadingDateCount(filteredItems)}\uc77c` : "";
+  readingsMeta.textContent = `\ucd1d ${readingItems.length}\uac1c · ${getReadingDateCount()}\uc77c${filterText} · \uc120\ud0dd\ud55c \ub0a0\uc9dc ${items.length}\uac1c`;
+  readingsEmptyState.textContent = readingItems.length === 0
+    ? "\uc77d\uc744\uac70\ub9ac \ub370\uc774\ud130\uac00 \uc544\uc9c1 \uc5c6\uc2b5\ub2c8\ub2e4. \ub4f1\ub85d \ubc84\ud2bc\uc73c\ub85c \uc0c8 \uc77d\uc744\uac70\ub9ac\ub97c \ucd94\uac00\ud574\uc8fc\uc138\uc694."
+    : hasActiveReadingFilters() && filteredItems.length === 0
+      ? "\uac80\uc0c9 \uc870\uac74\uc5d0 \ub9de\ub294 \uc77d\uc744\uac70\ub9ac\uac00 \uc5c6\uc2b5\ub2c8\ub2e4."
+    : "\uc120\ud0dd\ud55c \ub0a0\uc9dc\uc5d0 \ub4f1\ub85d\ub41c \uc77d\uc744\uac70\ub9ac\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.";
+  readingsEmptyState.classList.toggle("hidden", items.length > 0);
+
+  items.forEach((item) => {
+    readingsList.append(createReadingCard(item));
+  });
+}
+
+async function loadReadings() {
+  hasTriedLoadingBaseReadings = true;
+  try {
+    let payload = window.__READINGS_EXPORT__ || null;
+    if (!payload) {
+      const url = new URL(READINGS_EXPORT_URL, window.location.href);
+      url.searchParams.set("_", Date.now());
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load readings.");
+      payload = await response.json();
+    }
+    const rows = Array.isArray(payload) ? payload : payload.items;
+    baseReadingItems = Array.isArray(rows)
+      ? sortReadings(rows.map((row) => {
+        const item = normalizeReadingItem({ ...row, source: "base" });
+        item.originalKey = getReadingKey(item);
+        return item;
+      }).filter((item) => item.date && item.title))
+      : [];
+  } catch (error) {
+    console.error("Failed to load readings.", error);
+    baseReadingItems = [];
+  }
+  mergeReadingItems();
+  renderReadings();
+}
+
+function setReadingSubmissionOpen(isOpen) {
+  readingSubmissionModal.classList.toggle("hidden", !isOpen);
+  readingSubmissionTitle.textContent = editingReadingId ? "\uc77d\uc744\uac70\ub9ac \uc218\uc815" : "\uc77d\uc744\uac70\ub9ac \ub4f1\ub85d\ud558\uae30";
+  if (isOpen) {
+    if (!editingReadingId) {
+      readingSubmissionDate.value = selectedReadingDate || getLocalDateValue(new Date());
+      readingSubmissionSubmitter.value = getCurrentUser()?.name || "";
+      readingSubmissionDetails.value = readingSubmissionDetails.value || "\uc5c6\uc74c";
+    }
+    readingSubmissionMessage.textContent = "";
+    document.querySelector("#readingSubmissionAgency").focus();
+  } else {
+    readingSubmissionMessage.textContent = "";
+  }
+}
+
+function clearReadingSubmissionForm() {
+  editingReadingId = null;
+  editingReadingOriginalKey = null;
+  readingSubmissionForm.reset();
+  readingSubmissionDetails.value = "\uc5c6\uc74c";
+  readingSubmissionTitle.textContent = "\uc77d\uc744\uac70\ub9ac \ub4f1\ub85d\ud558\uae30";
+}
+
+function fillReadingSubmissionForm(item) {
+  editingReadingId = item.id || null;
+  editingReadingOriginalKey = item.id ? item.originalKey || null : getReadingKey(item);
+  readingSubmissionDate.value = item.date;
+  readingSubmissionSubmitter.value = item.submitter || item.authorName || getCurrentUser()?.name || "";
+  document.querySelector("#readingSubmissionAgency").value = item.agency || "";
+  document.querySelector("#readingSubmissionEntryTitle").value = item.title || "";
+  readingSubmissionDetails.value = item.details || "\uc5c6\uc74c";
+  document.querySelector("#readingSubmissionLink").value = item.link || "";
+  readingSubmissionMessage.textContent = "";
+}
+
+function createReadingSubmissionPayload(form) {
+  const formData = new FormData(form);
+  const value = (name) => String(formData.get(name) || "").trim();
+  const date = value("date");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("\ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574\uc8fc\uc138\uc694.");
+  }
+  const details = value("details");
+  const savedAt = new Date().toISOString();
+  const user = getCurrentUser();
+  return {
+    date,
+    dateLabel: formatKoreanDateLabel(date),
+    agency: value("agency"),
+    title: value("title"),
+    details: details && details !== "\uc5c6\uc74c" ? details : "",
+    link: value("link"),
+    submitter: value("submitter"),
+    savedAt,
+    authorId: user?.id || "",
+    authorName: user?.name || value("submitter"),
+    createdAt: savedAt,
+    updatedAt: savedAt
+  };
+}
+
+async function saveReadingSubmission(payload) {
+  if (editingReadingId) {
+    await setDoc(doc(db, "readings", editingReadingId), {
+      date: payload.date,
+      dateLabel: payload.dateLabel,
+      agency: payload.agency,
+      title: payload.title,
+      details: payload.details,
+      link: payload.link,
+      submitter: payload.submitter,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    return;
+  }
+  if (editingReadingOriginalKey) {
+    await addDoc(readingCollection, {
+      ...payload,
+      originalKey: editingReadingOriginalKey
+    });
+    return;
+  }
+  await addDoc(readingCollection, payload);
 }
 
 function makeOptionSelect(value, options, onChange) {
@@ -2524,11 +3612,55 @@ menuListButton.addEventListener("click", showListView);
 
 menuCalendarButton.addEventListener("click", showCalendarView);
 
+menuReadingsListButton.addEventListener("click", () => {
+  activeReadingsView = "list";
+  showReadingsView();
+});
+
+menuReadingsButton.addEventListener("click", () => {
+  activeReadingsView = "calendar";
+  showReadingsView();
+});
+
+menuSmeStatsButton.addEventListener("click", showSmeStatsView);
+
+menuDashboardButton.addEventListener("click", showDashboardView);
+
 menuScheduleListButton.addEventListener("click", showScheduleListView);
 
 menuScheduleCalendarButton.addEventListener("click", showScheduleCalendarView);
 
+menuLinkSitesButton.addEventListener("click", showLinkSitesView);
+
 menuMemoListButton.addEventListener("click", showMemoListView);
+
+dashboardSelect.addEventListener("change", (event) => {
+  selectedDashboardId = event.target.value;
+  renderDashboard();
+});
+
+dashboardZoomRange.addEventListener("input", (event) => {
+  dashboardUserZoom = clampNumber(Number(event.target.value) / 100, 0.7, 1.3);
+  syncDashboardZoomControl();
+  updateDashboardVizScale();
+});
+
+dashboardZoomReset.addEventListener("click", () => {
+  dashboardUserZoom = 1;
+  syncDashboardZoomControl();
+  updateDashboardVizScale();
+});
+
+window.addEventListener("resize", () => {
+  if (activeView !== "dashboard") return;
+  const selectedDashboard = getSelectedDashboard();
+  const preferredDevice = getDashboardViewportPreset().device;
+  if (selectedDashboard && dashboardVizMount.dataset.device !== preferredDevice) {
+    renderDashboardViz(selectedDashboard);
+    return;
+  }
+  updateDashboardVizScale();
+});
 
 adminPageButton.addEventListener("click", showAdminView);
 
@@ -2536,6 +3668,10 @@ saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 
 markdownControls.forEach((button) => {
   button.addEventListener("click", () => applyMarkdownAction(button.dataset.markdownAction));
+});
+
+readingMarkdownControls.forEach((button) => {
+  button.addEventListener("click", () => applyReadingMarkdownAction(button.dataset.readingMarkdownAction));
 });
 
 changePasswordButton.addEventListener("click", () => setPasswordModalOpen(true));
@@ -2607,6 +3743,95 @@ nextScheduleMonthButton.addEventListener("click", () => {
   renderScheduleCalendar();
 });
 
+prevReadingsMonthButton.addEventListener("click", () => {
+  currentReadingsCalendarDate = new Date(currentReadingsCalendarDate.getFullYear(), currentReadingsCalendarDate.getMonth() - 1, 1);
+  renderReadings();
+});
+
+nextReadingsMonthButton.addEventListener("click", () => {
+  currentReadingsCalendarDate = new Date(currentReadingsCalendarDate.getFullYear(), currentReadingsCalendarDate.getMonth() + 1, 1);
+  renderReadings();
+});
+
+todayReadingsButton.addEventListener("click", () => {
+  const today = new Date();
+  readingsSearchInput.value = "";
+  readingsStartDateFilter.value = "";
+  readingsEndDateFilter.value = "";
+  currentReadingsPage = 1;
+  selectedReadingDate = getLocalDateValue(today);
+  currentReadingsCalendarDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  renderReadings({ preserveSelectedDate: true });
+});
+
+[readingsSearchInput, readingsStartDateFilter, readingsEndDateFilter].forEach((control) => {
+  control.addEventListener("input", () => {
+    currentReadingsPage = 1;
+    selectedReadingDetailKey = "";
+    renderReadings();
+  });
+});
+
+clearReadingsFiltersButton.addEventListener("click", () => {
+  readingsSearchInput.value = "";
+  readingsStartDateFilter.value = "";
+  readingsEndDateFilter.value = "";
+  currentReadingsPage = 1;
+  selectedReadingDetailKey = "";
+  renderReadings();
+});
+
+readingsListTabButton.addEventListener("click", () => {
+  activeReadingsView = "list";
+  renderReadings();
+});
+
+readingsCalendarTabButton.addEventListener("click", () => {
+  activeReadingsView = "calendar";
+  renderReadings();
+});
+
+openReadingSubmissionButton.addEventListener("click", () => {
+  clearReadingSubmissionForm();
+  setReadingSubmissionOpen(true);
+});
+
+closeReadingSubmissionButton.addEventListener("click", () => {
+  setReadingSubmissionOpen(false);
+  clearReadingSubmissionForm();
+});
+
+cancelReadingSubmissionButton.addEventListener("click", () => {
+  setReadingSubmissionOpen(false);
+  clearReadingSubmissionForm();
+});
+
+readingSubmissionModal.addEventListener("click", (event) => {
+  if (event.target === readingSubmissionModal) {
+    setReadingSubmissionOpen(false);
+    clearReadingSubmissionForm();
+  }
+});
+
+readingSubmissionForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  let payload = null;
+  try {
+    payload = createReadingSubmissionPayload(readingSubmissionForm);
+    readingSubmissionMessage.textContent = "\ub4f1\ub85d \uc911\uc785\ub2c8\ub2e4...";
+    await saveReadingSubmission(payload);
+  } catch (error) {
+    readingSubmissionMessage.textContent = error.message || "\ub4f1\ub85d\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.";
+    return;
+  }
+
+  selectedReadingDate = payload.date;
+  currentReadingsCalendarDate = new Date(Number(payload.date.slice(0, 4)), Number(payload.date.slice(5, 7)) - 1, 1);
+  setReadingSubmissionOpen(false);
+  clearReadingSubmissionForm();
+  renderReadings();
+});
+
 logoutButton.addEventListener("click", async () => {
   sessionStorage.removeItem("currentUser");
   stopFirestoreListeners();
@@ -2632,6 +3857,7 @@ logoutButton.addEventListener("click", async () => {
 
 populateFormControls();
 applyContentInputStyle();
+loadReadings();
 const savedUser = getCurrentUser();
 setView(savedUser);
 if (savedUser) {

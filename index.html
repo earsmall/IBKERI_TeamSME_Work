@@ -52,13 +52,30 @@
             <button class="menu-item" id="menuCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <div class="menu-title">3. &#51068;&#51221;</div>
-            <button class="menu-item" id="menuScheduleListButton" type="button">&#8226; &#47785;&#47197;</button>
-            <button class="menu-item" id="menuScheduleCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
+            <div class="menu-title">3. 읽을거리</div>
+            <button class="menu-item" id="menuReadingsListButton" type="button">&#8226; 목록</button>
+            <button class="menu-item" id="menuReadingsButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <div class="menu-title">4. &#47700;&#47784;</div>
+            <div class="menu-title">4. 중소기업 통계</div>
+            <button class="menu-item" id="menuSmeStatsButton" type="button">&#8226; 목록</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">5. 시각화 대쉬보드</div>
+            <button class="menu-item" id="menuDashboardButton" type="button">&#8226; 보기</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">6. 링크사이트</div>
+            <button class="menu-item" id="menuLinkSitesButton" type="button">&#8226; 목록</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">7. &#47700;&#47784;</div>
             <button class="menu-item" id="menuMemoListButton" type="button">&#8226; &#47785;&#47197;</button>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">8. &#51068;&#51221;</div>
+            <button class="menu-item" id="menuScheduleListButton" type="button">&#8226; &#47785;&#47197;</button>
+            <button class="menu-item" id="menuScheduleCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
         </aside>
 
@@ -236,6 +253,115 @@
           <span>Sat</span>
         </div>
         <div class="calendar-grid" id="scheduleCalendarGrid"></div>
+      </section>
+
+      <section class="link-sites-panel hidden" id="linkSitesPanel" aria-label="link sites">
+        <div class="link-sites-grid" id="linkSitesGrid"></div>
+      </section>
+
+      <section class="sme-stats-panel hidden" id="smeStatsPanel" aria-label="sme statistics">
+        <div class="sme-stats-intro">
+          <h2>통계목록 기준 반영</h2>
+        </div>
+        <div class="sme-stats-list" id="smeStatsList"></div>
+      </section>
+
+      <section class="dashboard-panel hidden" id="dashboardPanel" aria-label="visualization dashboard">
+        <section class="dashboard-picker-panel">
+          <div class="dashboard-picker-row">
+            <div class="dashboard-picker-label">시각화 대쉬보드 선택하기</div>
+            <select id="dashboardSelect" class="dashboard-select" aria-label="대시보드 목록"></select>
+          </div>
+          <p class="dashboard-helper" id="dashboardHelper"></p>
+        </section>
+        <section class="dashboard-viewer">
+          <div class="dashboard-viewer-head">
+            <h2 id="dashboardViewerTitle">대시보드 보기</h2>
+            <div class="dashboard-tools">
+              <label class="dashboard-zoom-control" for="dashboardZoomRange">
+                <span>가로 보기 조절</span>
+                <input id="dashboardZoomRange" type="range" min="70" max="130" step="5" value="100" aria-label="대시보드 가로 보기 확대 비율">
+                <span id="dashboardZoomValue">100%</span>
+              </label>
+              <button class="ghost-button" id="dashboardZoomReset" type="button">기본값</button>
+            </div>
+          </div>
+          <div class="dashboard-frame">
+            <div id="dashboardVizMount" class="dashboard-empty">대시보드를 불러오는 중입니다.</div>
+          </div>
+        </section>
+      </section>
+
+      <section class="readings-panel hidden" id="readingsPanel" aria-label="readings calendar view">
+        <div class="readings-toolbar">
+          <div>
+            <p class="readings-meta" id="readingsMeta"></p>
+            <h2 id="readingsSelectedTitle"></h2>
+          </div>
+          <div class="readings-toolbar-actions">
+            <nav class="readings-tabs" aria-label="readings views">
+              <button class="readings-tab active" id="readingsListTabButton" type="button">목록</button>
+              <button class="readings-tab" id="readingsCalendarTabButton" type="button">캘린더</button>
+            </nav>
+            <button class="primary-button" id="openReadingSubmissionButton" type="button">읽을거리 등록하기</button>
+          </div>
+        </div>
+        <section class="readings-filters" aria-label="readings filters">
+          <div class="search-field">
+            <label for="readingsSearchInput">검색</label>
+            <input id="readingsSearchInput" type="search" placeholder="기관, 제목 검색">
+          </div>
+          <div>
+            <label for="readingsStartDateFilter">시작일</label>
+            <input id="readingsStartDateFilter" type="date">
+          </div>
+          <div>
+            <label for="readingsEndDateFilter">종료일</label>
+            <input id="readingsEndDateFilter" type="date">
+          </div>
+          <button class="ghost-button" id="clearReadingsFiltersButton" type="button">초기화</button>
+        </section>
+        <section class="readings-board-panel" id="readingsBoardPanel" aria-label="readings board list">
+          <section class="table-wrap">
+            <table id="readingsTable">
+              <thead>
+                <tr>
+                  <th scope="col">날짜</th>
+                  <th scope="col">제목</th>
+                  <th scope="col">기관</th>
+                  <th scope="col">등록자</th>
+                </tr>
+              </thead>
+              <tbody id="readingsTableRows"></tbody>
+            </table>
+            <p class="empty-state hidden" id="readingsTableEmptyState">조건에 맞는 읽을거리가 없습니다.</p>
+          </section>
+          <div class="readings-pagination" id="readingsPagination" aria-label="readings pagination"></div>
+        </section>
+        <div class="readings-layout">
+          <section class="readings-calendar-card" aria-label="readings calendar">
+            <div class="calendar-header">
+              <button class="ghost-button" id="prevReadingsMonthButton" type="button">&#8249;</button>
+              <h2 id="readingsCalendarTitle"></h2>
+              <button class="ghost-button" id="nextReadingsMonthButton" type="button">&#8250;</button>
+              <button class="ghost-button readings-today-button" id="todayReadingsButton" type="button">Today</button>
+            </div>
+            <div class="calendar-grid calendar-weekdays" aria-hidden="true">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+            <div class="calendar-grid readings-calendar-grid" id="readingsCalendarGrid"></div>
+          </section>
+          <section class="readings-list-card" aria-label="selected date readings">
+            <div id="readingsList" class="readings-list"></div>
+            <p class="empty-state hidden" id="readingsEmptyState">선택한 날짜에 등록된 읽을거리가 없습니다.</p>
+          </section>
+        </div>
       </section>
 
       <section class="memo-form-panel hidden" id="memoFormPanel" aria-labelledby="memoFormTitle">
@@ -566,6 +692,52 @@
           </form>
         </div>
       </div>
+      <div class="confirm-modal hidden" id="readingSubmissionModal" role="dialog" aria-modal="true" aria-labelledby="readingSubmissionTitle">
+        <div class="confirm-card reading-submission-card">
+          <div class="reading-submission-head">
+            <h2 id="readingSubmissionTitle">읽을거리 등록하기</h2>
+            <button class="ghost-button" id="closeReadingSubmissionButton" type="button" aria-label="Close">&#215;</button>
+          </div>
+          <form class="reading-submission-form" id="readingSubmissionForm">
+            <div>
+              <label for="readingSubmissionDate">&#45216;&#51676;</label>
+              <input id="readingSubmissionDate" name="date" type="date" required>
+            </div>
+            <div>
+              <label for="readingSubmissionSubmitter">&#46321;&#47197;&#51088;</label>
+              <input id="readingSubmissionSubmitter" name="submitter" type="text" required>
+            </div>
+            <div>
+              <label for="readingSubmissionAgency">&#44592;&#44288;</label>
+              <input id="readingSubmissionAgency" name="agency" type="text" required>
+            </div>
+            <div class="wide-field">
+              <label for="readingSubmissionEntryTitle">&#51228;&#47785;</label>
+              <input id="readingSubmissionEntryTitle" name="title" type="text" required>
+            </div>
+            <div class="wide-field">
+              <label for="readingSubmissionDetails">주요 내용</label>
+              <div class="markdown-toolbar" aria-label="reading markdown controls">
+                <button type="button" data-reading-markdown-action="heading" title="제목">#</button>
+                <button type="button" data-reading-markdown-action="bold" title="굵게">B</button>
+                <button type="button" data-reading-markdown-action="italic" title="기울임">I</button>
+                <button type="button" data-reading-markdown-action="list" title="목록">&#8226;</button>
+                <button type="button" data-reading-markdown-action="code" title="코드">&lt;/&gt;</button>
+              </div>
+              <textarea id="readingSubmissionDetails" name="details" rows="5" placeholder="&#50630;&#51020;"></textarea>
+            </div>
+            <div class="wide-field">
+              <label for="readingSubmissionLink">링크</label>
+              <input id="readingSubmissionLink" name="link" type="url" placeholder="https://..." required>
+            </div>
+            <p class="form-message wide-field" id="readingSubmissionMessage" role="status"></p>
+            <div class="form-actions wide-field">
+              <button class="secondary-button" id="cancelReadingSubmissionButton" type="button">취소</button>
+              <button type="submit">등록 내용 보내기</button>
+            </div>
+          </form>
+        </div>
+      </div>
         </div>
       </div>
     </section>
@@ -574,6 +746,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script type="module" src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
+  <script src="readings_export.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
