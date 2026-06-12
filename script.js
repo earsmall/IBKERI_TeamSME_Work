@@ -284,7 +284,6 @@ const WORK_STATUS_OPTIONS = [
   "\uc9c4\ud589",
   "\uc77c\uc2dc\uc911\uc9c0",
   "\ub300\uae30",
-  "\ubcf4\ub958",
   "\uace0\ub824\uc911",
   "\uc644\ub8cc"
 ];
