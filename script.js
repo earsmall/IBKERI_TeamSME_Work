@@ -2021,13 +2021,14 @@ function createReadingCard(item) {
           return;
         }
         const user = getCurrentUser();
-        await addDoc(readingCollection, {
-          originalKey: getReadingKey(item),
-          deleted: true,
-          authorId: user?.id || "",
-          authorName: user?.name || "",
-          createdAt: new Date().toISOString()
-        });
+          await addDoc(readingCollection, {
+            originalKey: getReadingKey(item),
+            deleted: true,
+            authorId: user?.id || "",
+            authorName: user?.name || "",
+            authUid: auth.currentUser?.uid || "",
+            createdAt: new Date().toISOString()
+          });
       });
     });
 
@@ -2146,6 +2147,7 @@ function createReadingSubmissionPayload(form) {
   const details = value("details");
   const savedAt = new Date().toISOString();
   const user = getCurrentUser();
+  const authUid = auth.currentUser?.uid || "";
   return {
     date,
     dateLabel: formatKoreanDateLabel(date),
@@ -2157,6 +2159,7 @@ function createReadingSubmissionPayload(form) {
     savedAt,
     authorId: user?.id || "",
     authorName: user?.name || value("submitter"),
+    authUid,
     createdAt: savedAt,
     updatedAt: savedAt
   };
@@ -2172,6 +2175,7 @@ async function saveReadingSubmission(payload) {
       details: payload.details,
       link: payload.link,
       submitter: payload.submitter,
+      authUid: payload.authUid,
       updatedAt: new Date().toISOString()
     }, { merge: true });
     return;
