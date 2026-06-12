@@ -268,6 +268,23 @@ textarea:focus {
   font-weight: 800;
 }
 
+.menu-title-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-title-button:hover,
+.menu-title-button.active {
+  color: #fff;
+  background: #1e6fae;
+}
+
 .menu-group + .menu-group {
   border-top: 1px solid #245d8c;
 }
@@ -1695,7 +1712,7 @@ td:nth-child(5) {
 
 .link-sites-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -1776,12 +1793,12 @@ td:nth-child(5) {
 
 .link-site-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
 .link-site-card.is-wide .link-site-list {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .link-site-chip {
@@ -2192,7 +2209,7 @@ td:nth-child(5) {
 
 .readings-layout {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -2207,14 +2224,24 @@ td:nth-child(5) {
 }
 
 .readings-calendar-card .calendar-header {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+}
+
+.readings-calendar-grid {
+  grid-auto-rows: 68px;
+}
+
+.readings-calendar-grid .calendar-day {
+  height: 68px;
+  min-height: 68px;
+  padding: 8px;
 }
 
 .readings-day {
   position: relative;
   display: block;
   width: 100%;
-  min-height: 92px;
+  min-height: 68px;
   text-align: left;
   cursor: default;
 }
@@ -2256,13 +2283,15 @@ td:nth-child(5) {
 
 .readings-list {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
 .reading-card {
   display: grid;
-  gap: 9px;
-  padding: 14px;
+  gap: 7px;
+  align-content: start;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -2278,21 +2307,21 @@ td:nth-child(5) {
 
 .reading-agency {
   color: var(--accent-dark);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .reading-submitter {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .reading-title {
   color: var(--ink);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 900;
-  line-height: 1.35;
+  line-height: 1.32;
   text-decoration: none;
 }
 
@@ -2304,29 +2333,9 @@ td:nth-child(5) {
 .reading-details {
   margin: 0;
   color: #40505f;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.45;
   white-space: pre-line;
-}
-
-.reading-source-link {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 5px 10px;
-  border: 1px solid rgba(30, 111, 174, 0.24);
-  border-radius: 6px;
-  color: var(--accent-dark);
-  background: #f5faff;
-  font-size: 13px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.reading-source-link:hover {
-  color: #fff;
-  background: var(--accent);
 }
 
 .reading-card-actions {
@@ -2361,6 +2370,194 @@ td:nth-child(5) {
   font-size: 12px;
   font-weight: 800;
   text-decoration: none;
+}
+
+.readings-toolbar,
+.readings-filters,
+.readings-tabs,
+.readings-calendar-card,
+.readings-list-card,
+.link-site-card,
+.sme-stats-intro,
+.sme-major-card,
+.dashboard-picker-panel,
+.dashboard-viewer {
+  color: #f4f9fd;
+  background: #080c12;
+  border-color: #1f5c8f;
+}
+
+.readings-toolbar h2,
+.link-site-head h2,
+.sme-stats-intro h2,
+.sme-major-head h2,
+.dashboard-viewer-head h2 {
+  color: #fff;
+}
+
+.readings-meta,
+.link-site-head p,
+.dashboard-helper,
+.dashboard-zoom-control,
+.dashboard-empty {
+  color: #a8c3da;
+}
+
+.readings-filters label {
+  color: #d8e8f7;
+}
+
+.readings-filters input,
+.readings-filters .ghost-button,
+.dashboard-select {
+  border-color: #3a78ad;
+  background: #153d60;
+  color: #f4f9fd;
+}
+
+.readings-filters input::placeholder {
+  color: #a8c3da;
+}
+
+.readings-tab {
+  color: #c7d4df;
+}
+
+.link-site-card.tone-stats,
+.link-site-card.tone-gov,
+.link-site-card.tone-research,
+.link-site-card.tone-ibk {
+  background: #080c12;
+}
+
+.link-site-card::before,
+.link-site-card.tone-stats::before,
+.link-site-card.tone-gov::before,
+.link-site-card.tone-research::before,
+.link-site-card.tone-ibk::before,
+.sme-major-card::before,
+.sme-major-card:nth-child(2)::before,
+.sme-major-card:nth-child(3)::before,
+.sme-major-card:nth-child(4)::before {
+  background: #1e6fae;
+}
+
+.link-site-chip,
+.sme-stat-chip,
+.reading-card {
+  color: #f4f9fd;
+  background: #171f29;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.link-site-chip:hover,
+.link-site-chip:focus-visible,
+.sme-stat-chip:hover,
+.sme-stat-chip:focus-visible {
+  color: #fff;
+  background: #1f2b38;
+  border-color: #3a78ad;
+}
+
+.sme-sub-card {
+  background: #101823;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.sme-sub-card h3,
+.reading-agency {
+  color: #9cccf5;
+}
+
+.sme-stat-chip-title,
+.reading-title {
+  color: #f4f9fd;
+}
+
+.sme-stat-chip-meta,
+.reading-submitter,
+.reading-details {
+  color: #c7d4df;
+}
+
+.reading-title:hover {
+  color: #9cccf5;
+}
+
+.readings-calendar-grid .calendar-day,
+.readings-day {
+  color: #f4f9fd;
+  background: #171f29;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.readings-calendar-grid .calendar-day.muted {
+  background: #101823;
+}
+
+.readings-day.has-readings {
+  background: #153d60;
+}
+
+.readings-day.has-readings:hover,
+.readings-day.active {
+  background: #1e6fae;
+}
+
+.readings-day.active {
+  outline-color: rgba(156, 204, 245, 0.42);
+}
+
+.readings-day:disabled,
+.calendar-day-number {
+  color: #a8c3da;
+}
+
+.readings-count {
+  color: #fff;
+  background: #1e6fae;
+}
+
+.reading-attachments a {
+  color: #d8e8f7;
+  background: #153d60;
+  border-color: #3a78ad;
+}
+
+.dashboard-picker-label {
+  color: #d8e8f7;
+  background: #0e2b45;
+  border-color: #3a78ad;
+}
+
+.dashboard-frame {
+  background: #101823;
+  border-color: #1f5c8f;
+}
+
+#readingsTable .clickable-row:hover td,
+#readingsTable .clickable-row.selected td {
+  color: #fff;
+  background: #1e6fae;
+}
+
+#readingsTable .readings-inline-detail-row td {
+  background: #101823;
+}
+
+#readingsTable .readings-inline-detail-row .reading-card {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 1180px) {
+  .link-site-list,
+  .link-site-card.is-wide .link-site-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .readings-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .reading-submission-card {
@@ -2635,6 +2832,10 @@ td:nth-child(5) {
 
   .readings-toolbar-actions {
     justify-content: flex-start;
+  }
+
+  .readings-list {
+    grid-template-columns: 1fr;
   }
 
   .dashboard-tools,

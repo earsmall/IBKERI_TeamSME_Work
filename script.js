@@ -1975,9 +1975,14 @@ function createReadingCard(item) {
 
   const title = document.createElement("a");
   title.className = "reading-title";
-  title.href = item.link || "#";
-  title.target = "_blank";
-  title.rel = "noopener noreferrer";
+  title.href = item.link || "";
+  if (item.link) {
+    title.target = "_blank";
+    title.rel = "noopener noreferrer";
+  } else {
+    title.setAttribute("aria-disabled", "true");
+    title.addEventListener("click", (event) => event.preventDefault());
+  }
   title.textContent = item.title || "\uc81c\ubaa9 \uc5c6\uc74c";
 
   const details = document.createElement("p");
@@ -1986,16 +1991,6 @@ function createReadingCard(item) {
 
   top.append(agency, submitter);
   card.append(top, title, details);
-
-  if (item.link) {
-    const sourceLink = document.createElement("a");
-    sourceLink.className = "reading-source-link";
-    sourceLink.href = item.link;
-    sourceLink.target = "_blank";
-    sourceLink.rel = "noopener noreferrer";
-    sourceLink.textContent = "\uc6d0\ubb38 \ub9c1\ud06c";
-    card.append(sourceLink);
-  }
 
   if (canManageReadingItem(item)) {
     const actions = document.createElement("div");
