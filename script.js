@@ -22,6 +22,18 @@ const READINGS_EXPORT_URL = "readings_export.json";
 const READINGS_PAGE_SIZE = 20;
 const LINK_SITE_SECTIONS = [
   {
+    title: "IBK",
+    tone: "tone-ibk",
+    wide: true,
+    note: "IBK 업무와 교육 관련 바로가기입니다.",
+    items: [
+      ["웹메일", "https://mail.ibk.co.kr/mail/login"],
+      ["EDGE 연수", "https://ibkedge.kbitube.or.kr/platformTubeWeb/CareLogin.do?cmd=moveLogin"],
+      ["IBK에듀", "https://edu.ibk.co.kr/login"],
+      ["법정의무교육", "https://ibk.getsmart.co.kr/members/login?returnUrl=http%3A%2F%2Fibk.getsmart.co.kr%2F"]
+    ]
+  },
+  {
     title: "통계",
     tone: "tone-stats",
     note: "통계 원자료와 대시보드 중심으로 정리했습니다.",
@@ -82,18 +94,6 @@ const LINK_SITE_SECTIONS = [
       ["우리금융경영연구소", "https://www.wfri.re.kr/ko/web/main.php"],
       ["하나금융연구소", "https://www.hanaif.re.kr/main.do"],
       ["KB경영연구소", "https://www.kbfg.com/kbresearch/index.do"]
-    ]
-  },
-  {
-    title: "IBK",
-    tone: "tone-ibk",
-    wide: true,
-    note: "IBK 업무와 교육 관련 바로가기입니다.",
-    items: [
-      ["웹메일", "https://mail.ibk.co.kr/mail/login"],
-      ["EDGE 연수", "https://ibkedge.kbitube.or.kr/platformTubeWeb/CareLogin.do?cmd=moveLogin"],
-      ["IBK에듀", "https://edu.ibk.co.kr/login"],
-      ["법정의무교육", "https://ibk.getsmart.co.kr/members/login?returnUrl=http%3A%2F%2Fibk.getsmart.co.kr%2F"]
     ]
   }
 ];
