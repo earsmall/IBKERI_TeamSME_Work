@@ -20,6 +20,28 @@ const passwordSettingsRef = db.collection("settings").doc("passwords");
 const userAccessRef = db.collection("settings").doc("userAccess");
 const READINGS_EXPORT_URL = "readings_export.json";
 const READINGS_PAGE_SIZE = 20;
+const LINK_QUICK_SECTIONS = [
+  {
+    title: "포털",
+    items: [
+      ["Google", "https://www.google.com/"],
+      ["Naver", "https://www.naver.com/"],
+      ["Youtube", "https://www.youtube.com/"],
+      ["Google 뉴스", "https://news.google.com/home?hl=ko&gl=KR&ceid=KR:ko"],
+      ["Naver 뉴스", "https://news.naver.com/"]
+    ]
+  },
+  {
+    title: "AI도구",
+    items: [
+      ["ChatGPT", "https://chatgpt.com/"],
+      ["Gemini", "https://gemini.google.com/app?hl=ko"],
+      ["Claude", "https://claude.ai/new"],
+      ["NotebookLM", "https://notebooklm.google.com/"],
+      ["Genspark AI", "https://www.genspark.ai/ko"]
+    ]
+  }
+];
 const LINK_SITE_SECTIONS = [
   {
     title: "IBK",
@@ -1346,6 +1368,35 @@ function renderDashboard() {
 
 function renderLinkSites() {
   linkSitesGrid.replaceChildren();
+  LINK_QUICK_SECTIONS.forEach((section) => {
+    const card = document.createElement("article");
+    card.className = "link-site-card";
+
+    const head = document.createElement("div");
+    head.className = "link-site-head";
+
+    const title = document.createElement("h2");
+    title.textContent = section.title;
+
+    head.append(title);
+
+    const list = document.createElement("div");
+    list.className = "link-site-list";
+
+    section.items.forEach(([itemTitle, url]) => {
+      const link = document.createElement("a");
+      link.className = "link-site-chip";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = itemTitle;
+      list.append(link);
+    });
+
+    card.append(head, list);
+    linkSitesGrid.append(card);
+  });
+
   LINK_SITE_SECTIONS.forEach((section) => {
     const card = document.createElement("article");
     card.className = `link-site-card ${section.tone || ""}${section.wide ? " is-wide" : ""}`;
