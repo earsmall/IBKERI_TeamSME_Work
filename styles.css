@@ -2625,6 +2625,46 @@ td:nth-child(5) {
   grid-column: 1 / -1;
 }
 
+.reading-attachment-field {
+  display: grid;
+  gap: 8px;
+}
+
+.reading-attachment-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reading-attachment-field-head label {
+  margin: 0;
+}
+
+.reading-attachment-field-head .ghost-button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.reading-attachment-inputs {
+  display: grid;
+  gap: 8px;
+}
+
+.reading-attachment-input-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.7fr) minmax(180px, 1.3fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.reading-attachment-input-row .danger-button {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 .reading-submission-form textarea {
   resize: vertical;
 }
@@ -2855,6 +2895,7 @@ td:nth-child(5) {
   .dashboard-picker-row,
   .readings-layout,
   .reading-submission-form,
+  .reading-attachment-input-row,
   .detail-meta {
     grid-template-columns: 1fr;
   }

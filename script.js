@@ -446,6 +446,8 @@ const readingSubmissionTitle = document.querySelector("#readingSubmissionTitle")
 const readingSubmissionDate = document.querySelector("#readingSubmissionDate");
 const readingSubmissionSubmitter = document.querySelector("#readingSubmissionSubmitter");
 const readingSubmissionDetails = document.querySelector("#readingSubmissionDetails");
+const readingAttachmentInputs = document.querySelector("#readingAttachmentInputs");
+const addReadingAttachmentButton = document.querySelector("#addReadingAttachmentButton");
 const readingMarkdownControls = document.querySelectorAll("[data-reading-markdown-action]");
 const readingSubmissionMessage = document.querySelector("#readingSubmissionMessage");
 const closeReadingSubmissionButton = document.querySelector("#closeReadingSubmissionButton");
@@ -2146,6 +2148,37 @@ async function loadReadings() {
   renderReadings();
 }
 
+function addReadingAttachmentInput(attachment = {}) {
+  const row = document.createElement("div");
+  row.className = "reading-attachment-input-row";
+
+  const label = document.createElement("input");
+  label.name = "attachmentLabel";
+  label.type = "text";
+  label.placeholder = "첨부 표시명";
+  label.value = attachment.label || attachment.name || "";
+
+  const url = document.createElement("input");
+  url.name = "attachmentUrl";
+  url.type = "url";
+  url.placeholder = "https://...";
+  url.value = attachment.href || attachment.url || attachment.link || "";
+
+  const remove = document.createElement("button");
+  remove.className = "danger-button";
+  remove.type = "button";
+  remove.textContent = "삭제";
+  remove.addEventListener("click", () => row.remove());
+
+  row.append(label, url, remove);
+  readingAttachmentInputs.append(row);
+}
+
+function setReadingAttachmentInputs(attachments = []) {
+  readingAttachmentInputs.replaceChildren();
+  attachments.forEach((attachment) => addReadingAttachmentInput(attachment));
+}
+
 function setReadingSubmissionOpen(isOpen) {
   readingSubmissionModal.classList.toggle("hidden", !isOpen);
   readingSubmissionTitle.textContent = editingReadingId ? "\uc77d\uc744\uac70\ub9ac \uc218\uc815" : "\uc77d\uc744\uac70\ub9ac \ub4f1\ub85d\ud558\uae30";
@@ -2167,6 +2200,7 @@ function clearReadingSubmissionForm() {
   editingReadingOriginalKey = null;
   readingSubmissionForm.reset();
   readingSubmissionDetails.value = "\uc5c6\uc74c";
+  setReadingAttachmentInputs();
   readingSubmissionTitle.textContent = "\uc77d\uc744\uac70\ub9ac \ub4f1\ub85d\ud558\uae30";
 }
 
@@ -2179,7 +2213,18 @@ function fillReadingSubmissionForm(item) {
   document.querySelector("#readingSubmissionEntryTitle").value = item.title || "";
   readingSubmissionDetails.value = item.details || "\uc5c6\uc74c";
   document.querySelector("#readingSubmissionLink").value = item.link || "";
+  setReadingAttachmentInputs(item.attachments || []);
   readingSubmissionMessage.textContent = "";
+}
+
+function getReadingSubmissionAttachments() {
+  return Array.from(readingAttachmentInputs.querySelectorAll(".reading-attachment-input-row"))
+    .map((row) => {
+      const label = row.querySelector("[name='attachmentLabel']").value.trim();
+      const href = row.querySelector("[name='attachmentUrl']").value.trim();
+      return { label: label || "첨부", href };
+    })
+    .filter((attachment) => attachment.href);
 }
 
 function createReadingSubmissionPayload(form) {
@@ -2200,6 +2245,7 @@ function createReadingSubmissionPayload(form) {
     title: value("title"),
     details: details && details !== "\uc5c6\uc74c" ? details : "",
     link: value("link"),
+    attachments: getReadingSubmissionAttachments(),
     submitter: value("submitter"),
     savedAt,
     authorId: user?.id || "",
@@ -2219,6 +2265,7 @@ async function saveReadingSubmission(payload) {
       title: payload.title,
       details: payload.details,
       link: payload.link,
+      attachments: payload.attachments,
       submitter: payload.submitter,
       authUid: payload.authUid,
       updatedAt: new Date().toISOString()
@@ -3722,6 +3769,8 @@ markdownControls.forEach((button) => {
 readingMarkdownControls.forEach((button) => {
   button.addEventListener("click", () => applyReadingMarkdownAction(button.dataset.readingMarkdownAction));
 });
+
+addReadingAttachmentButton.addEventListener("click", () => addReadingAttachmentInput());
 
 changePasswordButton.addEventListener("click", () => setPasswordModalOpen(true));
 
