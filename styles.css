@@ -2879,6 +2879,17 @@ td:nth-child(5) {
   margin-top: 10px;
 }
 
+.markdown-body a {
+  color: #8fd0ff;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-body .markdown-space {
+  height: 28px;
+}
+
 .markdown-body ul {
   margin: 8px 0 0;
   padding-left: 22px;

@@ -2704,8 +2704,19 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function getSafeLinkUrl(value) {
+  const url = String(value || "").trim();
+  if (/^(https?:\/\/|mailto:)/i.test(url)) return escapeHtml(url);
+  return "";
+}
+
 function renderInlineMarkdown(value) {
   return escapeHtml(value)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
+      const safeUrl = getSafeLinkUrl(url);
+      if (!safeUrl) return label;
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    })
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>");
@@ -2720,6 +2731,24 @@ function renderMarkdown(markdown) {
     const trimmed = line.trim();
     const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
     const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+
+    if (/^---space---$/i.test(trimmed)) {
+      if (listOpen) {
+        html.push("</ul>");
+        listOpen = false;
+      }
+      html.push('<div class="markdown-space"></div>');
+      return;
+    }
+
+    if (/^<br\s*\/?>$/i.test(trimmed)) {
+      if (listOpen) {
+        html.push("</ul>");
+        listOpen = false;
+      }
+      html.push("<br>");
+      return;
+    }
 
     if (!trimmed) {
       if (listOpen) {
@@ -3402,7 +3431,7 @@ function renderScheduleCalendar() {
       const badge = document.createElement("button");
       badge.className = `calendar-event ${getScheduleCategoryClass(item.category)}`;
       badge.type = "button";
-      badge.textContent = `${item.category} ${item.description}`;
+      badge.textContent = `(${item.category}) ${item.description}`.trim();
       if (canManageScheduleItem(item)) {
         badge.addEventListener("click", () => {
           showScheduleListView();
