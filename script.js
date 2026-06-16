@@ -308,7 +308,7 @@ const WORK_STATUS_OPTIONS = [
   "\uc9c4\ud589",
   "\uc77c\uc2dc\uc911\uc9c0",
   "\ub300\uae30",
-  "\uace0\ub824\uc911",
+  "\uc544\uc774\ub514\uc5b4",
   "\uc644\ub8cc"
 ];
 const WORK_DASHBOARD_STATUS_ORDER = WORK_STATUS_OPTIONS;
@@ -377,12 +377,14 @@ const workNoStartDate = document.querySelector("#workNoStartDate");
 const workNoEndDate = document.querySelector("#workNoEndDate");
 const workAlwaysOn = document.querySelector("#workAlwaysOn");
 const workTitle = document.querySelector("#workTitle");
+const workContent = document.querySelector("#workContent");
 const workAssigneeChoices = document.querySelector("#workAssigneeChoices");
 const workStatus = document.querySelector("#workStatus");
 const workCategory = document.querySelector("#workCategory");
 const workRows = document.querySelector("#workRows");
 const workEmptyState = document.querySelector("#workEmptyState");
 const workFormMessage = document.querySelector("#workFormMessage");
+const workMarkdownControls = document.querySelectorAll("[data-work-markdown-action]");
 const cancelWorkButton = document.querySelector("#cancelWorkButton");
 const workFilters = document.querySelector("#workFilters");
 const workFilterStartDate = document.querySelector("#workFilterStartDate");
@@ -497,6 +499,7 @@ const workDetailCategory = document.querySelector("#workDetailCategory");
 const workDetailStatus = document.querySelector("#workDetailStatus");
 const workDetailAssignees = document.querySelector("#workDetailAssignees");
 const workDetailAuthor = document.querySelector("#workDetailAuthor");
+const workDetailContent = document.querySelector("#workDetailContent");
 const workUpdateForm = document.querySelector("#workUpdateForm");
 const workUpdateDate = document.querySelector("#workUpdateDate");
 const workUpdateContent = document.querySelector("#workUpdateContent");
@@ -678,6 +681,10 @@ function getAssigneeNames(item) {
   return getAssigneeIds(item).map(getUserName).filter(Boolean);
 }
 
+function normalizeWorkStatus(status) {
+  return status === "\uace0\ub824\uc911" ? "\uc544\uc774\ub514\uc5b4" : status || WORK_STATUS_OPTIONS[0];
+}
+
 function normalizeWorkItem(id, item) {
   const assigneeIds = getAssigneeIds(item);
   const assigneeNames = Array.isArray(item.assigneeNames) ? item.assigneeNames : assigneeIds.map(getUserName).filter(Boolean);
@@ -697,11 +704,12 @@ function normalizeWorkItem(id, item) {
     noEndDate: Boolean(item.noEndDate),
     alwaysOn: Boolean(item.alwaysOn),
     title: item.title || "",
+    content: item.content || "",
     assigneeId: assigneeIds[0] || "",
     assigneeIds,
     assigneeName: assigneeNames[0] || "",
     assigneeNames,
-    status: item.status || WORK_STATUS_OPTIONS[0],
+    status: normalizeWorkStatus(item.status),
     category: item.category || WORK_CATEGORY_OPTIONS[0],
     authorId,
     authorName: item.authorName || getUserName(authorId),
@@ -1076,6 +1084,7 @@ function fillWorkForm(item) {
   workAlwaysOn.checked = Boolean(item.alwaysOn);
   syncWorkDateControls();
   workTitle.value = item.title;
+  workContent.value = item.content || "";
   const assigneeIds = getAssigneeIds(item);
   document.querySelectorAll('input[name="workAssignees"]').forEach((checkbox) => {
     checkbox.checked = assigneeIds.includes(checkbox.value);
@@ -1404,6 +1413,75 @@ function applyMemoMarkdownAction(action) {
   }
   if (action === "link") {
     insertMarkdownLink(memoContent, replaceMemoContentSelection);
+  }
+}
+
+function replaceWorkContentSelection(nextValue, selectionStart, selectionEnd) {
+  workContent.value = nextValue;
+  workContent.focus();
+  workContent.setSelectionRange(selectionStart, selectionEnd);
+}
+
+function wrapWorkContentSelection(prefix, suffix = prefix, fallback = "text") {
+  const start = workContent.selectionStart;
+  const end = workContent.selectionEnd;
+  const selected = workContent.value.slice(start, end) || fallback;
+  const before = workContent.value.slice(0, start);
+  const after = workContent.value.slice(end);
+  const nextValue = `${before}${prefix}${selected}${suffix}${after}`;
+  const nextStart = start + prefix.length;
+  const nextEnd = nextStart + selected.length;
+  replaceWorkContentSelection(nextValue, nextStart, nextEnd);
+}
+
+function prefixWorkContentLines(prefix, fallback = "text") {
+  const start = workContent.selectionStart;
+  const end = workContent.selectionEnd;
+  const selected = workContent.value.slice(start, end) || fallback;
+  const before = workContent.value.slice(0, start);
+  const after = workContent.value.slice(end);
+  const prefixed = selected
+    .split("\n")
+    .map((line) => line.startsWith(prefix) ? line : `${prefix}${line}`)
+    .join("\n");
+  replaceWorkContentSelection(`${before}${prefixed}${after}`, start, start + prefixed.length);
+}
+
+function applyWorkMarkdownAction(action) {
+  if (action === "heading" || action === "heading1") {
+    prefixWorkContentLines("# ");
+    return;
+  }
+  if (action === "heading2") {
+    prefixWorkContentLines("## ");
+    return;
+  }
+  if (action === "heading3") {
+    prefixWorkContentLines("### ");
+    return;
+  }
+  if (action === "bold") {
+    wrapWorkContentSelection("**");
+    return;
+  }
+  if (action === "italic") {
+    wrapWorkContentSelection("*");
+    return;
+  }
+  if (action === "list") {
+    prefixWorkContentLines("- ");
+    return;
+  }
+  if (action === "code") {
+    wrapWorkContentSelection("`");
+    return;
+  }
+  if (action === "space") {
+    insertMarkdownSpace(workContent, replaceWorkContentSelection);
+    return;
+  }
+  if (action === "link") {
+    insertMarkdownLink(workContent, replaceWorkContentSelection);
   }
 }
 
@@ -1817,6 +1895,7 @@ function showWorkDetailView(itemId) {
   workDetailStatus.replaceChildren(makeStatusTag(item.status));
   workDetailAssignees.textContent = getAssigneeNames(item).join(", ");
   workDetailAuthor.textContent = item.authorName || "";
+  workDetailContent.innerHTML = renderMarkdown(item.content || "");
   renderWorkUpdates(item);
   backToWorkListButton.focus();
 }
@@ -2898,16 +2977,17 @@ function makeTag(text) {
 
 function makeStatusTag(status) {
   const tag = document.createElement("span");
+  const normalizedStatus = normalizeWorkStatus(status);
   const classMap = {
     "\uc9c4\ud589": "red",
     "\uc77c\uc2dc\uc911\uc9c0": "yellow",
     "\ub300\uae30": "green",
     "\ubcf4\ub958": "gray",
-    "\uace0\ub824\uc911": "purple",
+    "\uc544\uc774\ub514\uc5b4": "purple",
     "\uc644\ub8cc": "blue"
   };
-  tag.className = `status-tag ${classMap[status] || "gray"}`;
-  tag.textContent = status;
+  tag.className = `status-tag ${classMap[normalizedStatus] || "gray"}`;
+  tag.textContent = normalizedStatus;
   return tag;
 }
 
@@ -3647,6 +3727,7 @@ workForm.addEventListener("submit", async (event) => {
     noEndDate,
     alwaysOn,
     title: String(formData.get("title")).trim(),
+    content: String(formData.get("content") || "").trim(),
     assigneeId: assigneeIds[0],
     assigneeIds,
     assigneeName: getUserName(assigneeIds[0]),
@@ -3669,6 +3750,7 @@ workForm.addEventListener("submit", async (event) => {
         noEndDate: workItem.noEndDate,
         alwaysOn: workItem.alwaysOn,
         title: workItem.title,
+        content: workItem.content,
         assigneeId: workItem.assigneeId,
         assigneeIds: workItem.assigneeIds,
         assigneeName: workItem.assigneeName,
@@ -4054,6 +4136,10 @@ readingMarkdownControls.forEach((button) => {
 
 memoMarkdownControls.forEach((button) => {
   button.addEventListener("click", () => applyMemoMarkdownAction(button.dataset.memoMarkdownAction));
+});
+
+workMarkdownControls.forEach((button) => {
+  button.addEventListener("click", () => applyWorkMarkdownAction(button.dataset.workMarkdownAction));
 });
 
 addReadingAttachmentButton.addEventListener("click", () => addReadingAttachmentInput());

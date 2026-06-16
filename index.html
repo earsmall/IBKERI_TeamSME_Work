@@ -160,6 +160,22 @@
             <legend>&#45812;&#45817;&#51088;</legend>
             <div id="workAssigneeChoices" class="participant-choices"></div>
           </fieldset>
+          <div class="wide-field">
+            <label for="workContent">&#45236;&#50857;</label>
+            <div class="markdown-toolbar" aria-label="work markdown controls">
+              <span class="markdown-toolbar-label">Markdown 문법 도구 모음</span>
+              <button type="button" data-work-markdown-action="heading1" title="&#53360; &#51228;&#47785;">#</button>
+              <button type="button" data-work-markdown-action="heading2" title="&#51473;&#44036; &#51228;&#47785;">##</button>
+              <button type="button" data-work-markdown-action="heading3" title="&#51089;&#51008; &#51228;&#47785;">###</button>
+              <button type="button" data-work-markdown-action="bold" title="&#44405;&#44172;">B</button>
+              <button type="button" data-work-markdown-action="italic" title="&#44592;&#50872;&#51076;">I</button>
+              <button type="button" data-work-markdown-action="list" title="&#47785;&#47197;">&#8226;</button>
+              <button type="button" data-work-markdown-action="code" title="&#53076;&#46300;">&lt;/&gt;</button>
+              <button type="button" data-work-markdown-action="space" title="&#53360; &#50668;&#48177;">SP</button>
+              <button type="button" data-work-markdown-action="link" title="&#47553;&#53356;">L</button>
+            </div>
+            <textarea id="workContent" name="content" rows="10"></textarea>
+          </div>
           <div class="form-actions wide-field">
             <p class="form-message" id="workFormMessage" role="status"></p>
             <button class="secondary-button" id="cancelWorkButton" type="button">&#52712;&#49548;</button>
@@ -632,6 +648,10 @@
               <dd id="workDetailAuthor"></dd>
             </div>
           </dl>
+          <section class="detail-content" aria-label="work content">
+            <h3>&#45236;&#50857;</h3>
+            <div id="workDetailContent" class="markdown-body"></div>
+          </section>
           <section class="work-updates" aria-label="work progress updates">
             <div class="work-updates-header">
               <h3>&#51652;&#54665; &#54788;&#54889;</h3>

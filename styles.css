@@ -155,7 +155,8 @@ textarea {
 
 .post-form .markdown-toolbar button,
 .reading-submission-form .markdown-toolbar button,
-.memo-form .markdown-toolbar button {
+.memo-form .markdown-toolbar button,
+.work-form .markdown-toolbar button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +172,8 @@ textarea {
 
 .post-form .markdown-toolbar button:hover,
 .reading-submission-form .markdown-toolbar button:hover,
-.memo-form .markdown-toolbar button:hover {
+.memo-form .markdown-toolbar button:hover,
+.work-form .markdown-toolbar button:hover {
   background: #e2edf6;
 }
 
@@ -772,6 +774,7 @@ textarea:focus {
 
 .work-form input,
 .work-form select,
+.work-form textarea,
 .schedule-form input,
 .schedule-form select,
 .memo-form input,
