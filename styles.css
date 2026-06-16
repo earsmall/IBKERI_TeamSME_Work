@@ -141,8 +141,16 @@ textarea {
 .markdown-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   margin-bottom: 8px;
+}
+
+.markdown-toolbar-label {
+  margin-right: 4px;
+  color: #536b7f;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .post-form .markdown-toolbar button,
@@ -151,10 +159,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
   min-width: 36px;
   min-height: 34px;
-  padding: 0;
+  padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--accent);
@@ -2867,8 +2874,21 @@ td:nth-child(5) {
 .markdown-body h3,
 .markdown-body h4,
 .markdown-body h5 {
-  margin: 18px 0 8px;
-  line-height: 1.35;
+  margin: 22px 0 10px;
+  line-height: 1.32;
+  font-weight: 900;
+}
+
+.markdown-body h3 {
+  font-size: 1.55em;
+}
+
+.markdown-body h4 {
+  font-size: 1.32em;
+}
+
+.markdown-body h5 {
+  font-size: 1.16em;
 }
 
 .markdown-body p {

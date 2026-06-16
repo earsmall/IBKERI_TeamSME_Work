@@ -1208,8 +1208,39 @@ function prefixPostContentLines(prefix, fallback = "text") {
   replacePostContentSelection(`${before}${prefixed}${after}`, start, start + prefixed.length);
 }
 
+function insertMarkdownSpace(textarea, replaceSelection) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  const leading = before && !before.endsWith("\n") ? "\n" : "";
+  const trailing = after && !after.startsWith("\n") ? "\n" : "";
+  const block = `${leading}---space---${trailing}`;
+  replaceSelection(`${before}${block}${after}`, start + leading.length, start + block.length);
+}
+
+function insertMarkdownLink(textarea, replaceSelection, fallback = "링크") {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end) || fallback;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  const url = "https://example.com";
+  const link = `[${selected}](${url})`;
+  const urlStart = start + selected.length + 3;
+  replaceSelection(`${before}${link}${after}`, urlStart, urlStart + url.length);
+}
+
 function applyMarkdownAction(action) {
-  if (action === "heading") {
+  if (action === "heading" || action === "heading1") {
+    prefixPostContentLines("# ");
+    return;
+  }
+  if (action === "heading2") {
+    prefixPostContentLines("## ");
+    return;
+  }
+  if (action === "heading3") {
     prefixPostContentLines("### ");
     return;
   }
@@ -1227,6 +1258,14 @@ function applyMarkdownAction(action) {
   }
   if (action === "code") {
     wrapPostContentSelection("`");
+    return;
+  }
+  if (action === "space") {
+    insertMarkdownSpace(postContent, replacePostContentSelection);
+    return;
+  }
+  if (action === "link") {
+    insertMarkdownLink(postContent, replacePostContentSelection);
   }
 }
 
@@ -1262,7 +1301,15 @@ function prefixReadingDetailsLines(prefix, fallback = "text") {
 }
 
 function applyReadingMarkdownAction(action) {
-  if (action === "heading") {
+  if (action === "heading" || action === "heading1") {
+    prefixReadingDetailsLines("# ");
+    return;
+  }
+  if (action === "heading2") {
+    prefixReadingDetailsLines("## ");
+    return;
+  }
+  if (action === "heading3") {
     prefixReadingDetailsLines("### ");
     return;
   }
@@ -1280,6 +1327,14 @@ function applyReadingMarkdownAction(action) {
   }
   if (action === "code") {
     wrapReadingDetailsSelection("`");
+    return;
+  }
+  if (action === "space") {
+    insertMarkdownSpace(readingSubmissionDetails, replaceReadingDetailsSelection);
+    return;
+  }
+  if (action === "link") {
+    insertMarkdownLink(readingSubmissionDetails, replaceReadingDetailsSelection);
   }
 }
 
@@ -1315,7 +1370,15 @@ function prefixMemoContentLines(prefix, fallback = "text") {
 }
 
 function applyMemoMarkdownAction(action) {
-  if (action === "heading") {
+  if (action === "heading" || action === "heading1") {
+    prefixMemoContentLines("# ");
+    return;
+  }
+  if (action === "heading2") {
+    prefixMemoContentLines("## ");
+    return;
+  }
+  if (action === "heading3") {
     prefixMemoContentLines("### ");
     return;
   }
@@ -1333,6 +1396,14 @@ function applyMemoMarkdownAction(action) {
   }
   if (action === "code") {
     wrapMemoContentSelection("`");
+    return;
+  }
+  if (action === "space") {
+    insertMarkdownSpace(memoContent, replaceMemoContentSelection);
+    return;
+  }
+  if (action === "link") {
+    insertMarkdownLink(memoContent, replaceMemoContentSelection);
   }
 }
 
