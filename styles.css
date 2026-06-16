@@ -146,7 +146,8 @@ textarea {
 }
 
 .post-form .markdown-toolbar button,
-.reading-submission-form .markdown-toolbar button {
+.reading-submission-form .markdown-toolbar button,
+.memo-form .markdown-toolbar button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -162,7 +163,8 @@ textarea {
 }
 
 .post-form .markdown-toolbar button:hover,
-.reading-submission-form .markdown-toolbar button:hover {
+.reading-submission-form .markdown-toolbar button:hover,
+.memo-form .markdown-toolbar button:hover {
   background: #e2edf6;
 }
 
@@ -1434,6 +1436,34 @@ td:nth-child(5) {
   font-size: 14px;
 }
 
+.admin-add-user {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(160px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.admin-add-user label {
+  display: block;
+  margin-bottom: 5px;
+  color: #d6e7f4;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-add-user input,
+.admin-table input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #3a78ad;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #f4f9fd;
+  background: #0e2b45;
+  font: inherit;
+}
+
 .admin-table-wrap {
   overflow-x: auto;
   border: 1px solid #255f92;
@@ -1479,6 +1509,12 @@ td:nth-child(5) {
   padding: 0 10px;
   color: #f4f9fd;
   background: #0e2b45;
+}
+
+@media (max-width: 720px) {
+  .admin-add-user {
+    grid-template-columns: 1fr;
+  }
 }
 
 .issue-panel {

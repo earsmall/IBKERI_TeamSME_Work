@@ -18,6 +18,7 @@ const readingCollection = db.collection("readings");
 const adminRolesRef = db.collection("settings").doc("adminRoles");
 const passwordSettingsRef = db.collection("settings").doc("passwords");
 const userAccessRef = db.collection("settings").doc("userAccess");
+const usersSettingsRef = db.collection("settings").doc("users");
 const READINGS_EXPORT_URL = "readings_export.json";
 const READINGS_PAGE_SIZE = 20;
 const LINK_QUICK_SECTIONS = [
@@ -293,6 +294,7 @@ const VALID_USERS = [
   { id: "42128", name: "\uae40\uc218\uc601", role: "member" },
   { id: "22194", name: "\uc2ec\ud615\uc900", role: "member" }
 ];
+const DEFAULT_VALID_USERS = VALID_USERS.map((user) => ({ ...user }));
 
 const TYPE_OPTIONS = [ko.underHead, ko.underDirector, ko.underTeamLead];
 const WORK_CATEGORY_OPTIONS = [
@@ -457,6 +459,7 @@ const memoForm = document.querySelector("#memoForm");
 const memoFormTitle = document.querySelector("#memoFormTitle");
 const memoTitle = document.querySelector("#memoTitle");
 const memoContent = document.querySelector("#memoContent");
+const memoMarkdownControls = document.querySelectorAll("[data-memo-markdown-action]");
 const memoFormMessage = document.querySelector("#memoFormMessage");
 const cancelMemoButton = document.querySelector("#cancelMemoButton");
 const memoListPanel = document.querySelector("#memoListPanel");
@@ -477,6 +480,9 @@ const adminPanel = document.querySelector("#adminPanel");
 const adminRows = document.querySelector("#adminRows");
 const saveAdminRolesButton = document.querySelector("#saveAdminRolesButton");
 const adminMessage = document.querySelector("#adminMessage");
+const newAdminUserId = document.querySelector("#newAdminUserId");
+const newAdminUserName = document.querySelector("#newAdminUserName");
+const addAdminUserButton = document.querySelector("#addAdminUserButton");
 const calendarGrid = document.querySelector("#calendarGrid");
 const calendarTitle = document.querySelector("#calendarTitle");
 const viewHeading = document.querySelector("#viewHeading");
@@ -570,6 +576,56 @@ function normalizeDateValue(value) {
     return `20${value}`;
   }
   return value;
+}
+
+function normalizeUserId(value) {
+  return String(value || "").trim();
+}
+
+function normalizeUserName(value) {
+  return String(value || "").trim();
+}
+
+function normalizeConfiguredUsers(users) {
+  const seen = new Set(["admin"]);
+  const defaultUserMap = new Map(DEFAULT_VALID_USERS.map((user) => [user.id, user]));
+  const sourceUsers = Array.isArray(users) && users.length > 0
+    ? users
+    : DEFAULT_VALID_USERS.filter((user) => user.id !== "admin");
+
+  return [
+    DEFAULT_VALID_USERS.find((user) => user.id === "admin"),
+    ...sourceUsers.reduce((items, user) => {
+      const id = normalizeUserId(user.id);
+      const name = normalizeUserName(user.name);
+      if (!id || !name || seen.has(id)) return items;
+      seen.add(id);
+      items.push({
+        id,
+        name,
+        role: user.role || defaultUserMap.get(id)?.role || "member"
+      });
+      return items;
+    }, [])
+  ].filter(Boolean);
+}
+
+function applyConfiguredUsers(users) {
+  VALID_USERS.splice(0, VALID_USERS.length, ...normalizeConfiguredUsers(users));
+}
+
+function getConfigurableUsers() {
+  return VALID_USERS.filter((user) => user.id !== "admin");
+}
+
+function getUsersSettingsPayload() {
+  return {
+    users: getConfigurableUsers().map((user) => ({
+      id: user.id,
+      name: user.name
+    })),
+    updatedAt: new Date().toISOString()
+  };
 }
 
 function normalizeMeetingPost(id, post) {
@@ -695,6 +751,12 @@ async function loadPasswordSettings() {
   return passwordHashMap;
 }
 
+async function loadUserSettings() {
+  const snapshot = await getDoc(usersSettingsRef);
+  applyConfiguredUsers(snapshot.exists ? snapshot.data().users : null);
+  return VALID_USERS;
+}
+
 async function loadUserAccessSettings() {
   const snapshot = await getDoc(userAccessRef);
   disabledUserIds = snapshot.exists ? snapshot.data().disabledUserIds || [] : [];
@@ -758,6 +820,22 @@ function startFirestoreListeners() {
     passwordHashMap = snapshot.exists ? snapshot.data().hashes || {} : {};
   }, (error) => {
     console.error("Failed to load password settings.", error);
+  }));
+
+  firestoreUnsubscribers.push(onSnapshot(usersSettingsRef, (snapshot) => {
+    applyConfiguredUsers(snapshot.exists ? snapshot.data().users : null);
+    syncCurrentUserRole();
+    renderAdminRows();
+    renderUserChoices();
+    renderBoard();
+    renderWorkList();
+    renderWorkDashboard();
+    renderScheduleList();
+    renderScheduleCalendar();
+    renderMemoList();
+    renderReadings();
+  }, (error) => {
+    console.error("Failed to load user settings.", error);
   }));
 
   firestoreUnsubscribers.push(onSnapshot(userAccessRef, (snapshot) => {
@@ -826,7 +904,8 @@ function isAdminUser(user) {
 function syncCurrentUserRole() {
   const user = getCurrentUser();
   if (!user) return;
-  const syncedUser = { ...user, role: getStoredUserRole(user.id) };
+  const currentUserRecord = VALID_USERS.find((item) => item.id === user.id);
+  const syncedUser = { ...user, name: currentUserRecord?.name || user.name, role: getStoredUserRole(user.id) };
   sessionStorage.setItem("currentUser", JSON.stringify(syncedUser));
   setView(syncedUser);
   if (!isAdminUser(syncedUser) && !adminPanel.classList.contains("hidden")) {
@@ -1201,6 +1280,59 @@ function applyReadingMarkdownAction(action) {
   }
   if (action === "code") {
     wrapReadingDetailsSelection("`");
+  }
+}
+
+function replaceMemoContentSelection(nextValue, selectionStart, selectionEnd) {
+  memoContent.value = nextValue;
+  memoContent.focus();
+  memoContent.setSelectionRange(selectionStart, selectionEnd);
+}
+
+function wrapMemoContentSelection(prefix, suffix = prefix, fallback = "text") {
+  const start = memoContent.selectionStart;
+  const end = memoContent.selectionEnd;
+  const selected = memoContent.value.slice(start, end) || fallback;
+  const before = memoContent.value.slice(0, start);
+  const after = memoContent.value.slice(end);
+  const nextValue = `${before}${prefix}${selected}${suffix}${after}`;
+  const nextStart = start + prefix.length;
+  const nextEnd = nextStart + selected.length;
+  replaceMemoContentSelection(nextValue, nextStart, nextEnd);
+}
+
+function prefixMemoContentLines(prefix, fallback = "text") {
+  const start = memoContent.selectionStart;
+  const end = memoContent.selectionEnd;
+  const selected = memoContent.value.slice(start, end) || fallback;
+  const before = memoContent.value.slice(0, start);
+  const after = memoContent.value.slice(end);
+  const prefixed = selected
+    .split("\n")
+    .map((line) => line.startsWith(prefix) ? line : `${prefix}${line}`)
+    .join("\n");
+  replaceMemoContentSelection(`${before}${prefixed}${after}`, start, start + prefixed.length);
+}
+
+function applyMemoMarkdownAction(action) {
+  if (action === "heading") {
+    prefixMemoContentLines("### ");
+    return;
+  }
+  if (action === "bold") {
+    wrapMemoContentSelection("**");
+    return;
+  }
+  if (action === "italic") {
+    wrapMemoContentSelection("*");
+    return;
+  }
+  if (action === "list") {
+    prefixMemoContentLines("- ");
+    return;
+  }
+  if (action === "code") {
+    wrapMemoContentSelection("`");
   }
 }
 
@@ -1643,7 +1775,7 @@ function showMemoDetailView(itemId) {
   memoDetailDate.textContent = formatShortDate((item.createdAt || "").slice(0, 10));
   memoDetailTitle.textContent = item.title;
   memoDetailAuthor.textContent = item.authorName || "";
-  memoDetailContent.textContent = item.content || "";
+  memoDetailContent.innerHTML = renderMarkdown(item.content || "");
   backToMemoListButton.focus();
 }
 
@@ -2306,7 +2438,7 @@ function renderAdminRows() {
     { value: "active", label: "\ub85c\uadf8\uc778 \uac00\ub2a5" },
     { value: "disabled", label: "\uc0ad\uc81c" }
   ];
-  const teamUsers = VALID_USERS.filter((user) => user.id !== "admin");
+  const teamUsers = getConfigurableUsers();
 
   adminRows.replaceChildren();
   teamUsers.forEach((user) => {
@@ -2325,13 +2457,41 @@ function renderAdminRows() {
     select.dataset.userId = user.id;
     accessSelect.dataset.accessUserId = user.id;
     id.textContent = user.id;
-    name.textContent = user.name;
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = user.name;
+    nameInput.dataset.nameUserId = user.id;
+    nameInput.addEventListener("input", () => {
+      adminMessage.textContent = "";
+    });
+    name.append(nameInput);
     row.classList.toggle("disabled-user-row", isUserDisabled(user.id));
     role.append(select);
     access.append(accessSelect);
     row.append(id, name, role, access);
     adminRows.append(row);
   });
+}
+
+function addAdminUserDraft() {
+  const id = normalizeUserId(newAdminUserId?.value);
+  const name = normalizeUserName(newAdminUserName?.value);
+
+  if (!id || !name) {
+    adminMessage.textContent = "\uc0ac\ubc88\uacfc \uc774\ub984\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.";
+    return;
+  }
+
+  if (VALID_USERS.some((user) => user.id === id)) {
+    adminMessage.textContent = "\uc774\ubbf8 \ub4f1\ub85d\ub41c \uc0ac\ubc88\uc785\ub2c8\ub2e4.";
+    return;
+  }
+
+  VALID_USERS.push({ id, name, role: "member" });
+  newAdminUserId.value = "";
+  newAdminUserName.value = "";
+  adminMessage.textContent = "\ucd94\uac00\ud560 \ud300\uc6d0\uc774 \ubaa9\ub85d\uc5d0 \ubc18\uc601\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uc800\uc7a5\uc744 \ub20c\ub7ec\uc57c \ud655\uc815\ub429\ub2c8\ub2e4.";
+  renderAdminRows();
 }
 
 async function saveAdminRoles() {
@@ -2345,13 +2505,24 @@ async function saveAdminRoles() {
       disabledIds.push(select.dataset.accessUserId);
     }
   });
+  const users = getConfigurableUsers().map((user) => {
+    const nameInput = Array.from(adminRows.querySelectorAll("input[data-name-user-id]"))
+      .find((input) => input.dataset.nameUserId === user.id);
+    return {
+      ...user,
+      name: normalizeUserName(nameInput?.value) || user.name
+    };
+  });
 
   try {
+    applyConfiguredUsers(users);
     await Promise.all([
+      setDoc(usersSettingsRef, getUsersSettingsPayload(), { merge: true }),
       setDoc(adminRolesRef, { roles, updatedAt: new Date().toISOString() }, { merge: true }),
       setDoc(userAccessRef, { disabledUserIds: disabledIds, updatedAt: new Date().toISOString() }, { merge: true })
     ]);
-    adminMessage.textContent = "\uad00\ub9ac\uc790 \uad8c\ud55c\uacfc \ub85c\uadf8\uc778 \uad8c\ud55c\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.";
+    renderUserChoices();
+    adminMessage.textContent = "\ud300\uc6d0 \ubaa9\ub85d, \uad00\ub9ac\uc790 \uad8c\ud55c, \ub85c\uadf8\uc778 \uad8c\ud55c\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.";
   } catch (error) {
     console.error("관리자 권한 저장에 실패했습니다.", error);
     adminMessage.textContent = "\uc800\uc7a5 \uad8c\ud55c \ub610\ub294 Firebase \uc5f0\uacb0 \uc0c1\ud0dc\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694.";
@@ -3251,17 +3422,17 @@ loginForm.addEventListener("submit", async (event) => {
   const formData = new FormData(loginForm);
   const userId = String(formData.get("userId")).trim();
   const password = String(formData.get("password") || "");
-  const user = VALID_USERS.find((item) => item.id === userId);
-
-  if (!user) {
-    loginError.textContent = ko.badLogin;
-    return;
-  }
 
   loginError.textContent = "";
   try {
     await ensureAnonymousAuth();
+    await loadUserSettings();
     await loadUserAccessSettings();
+    const user = VALID_USERS.find((item) => item.id === userId);
+    if (!user) {
+      loginError.textContent = ko.badLogin;
+      return;
+    }
     if (isUserDisabled(user.id)) {
       loginError.textContent = ko.loginDisabled;
       return;
@@ -3760,6 +3931,17 @@ window.addEventListener("resize", () => {
 
 adminPageButton.addEventListener("click", showAdminView);
 
+addAdminUserButton.addEventListener("click", addAdminUserDraft);
+
+[newAdminUserId, newAdminUserName].forEach((input) => {
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addAdminUserDraft();
+    }
+  });
+});
+
 saveAdminRolesButton.addEventListener("click", saveAdminRoles);
 
 markdownControls.forEach((button) => {
@@ -3768,6 +3950,10 @@ markdownControls.forEach((button) => {
 
 readingMarkdownControls.forEach((button) => {
   button.addEventListener("click", () => applyReadingMarkdownAction(button.dataset.readingMarkdownAction));
+});
+
+memoMarkdownControls.forEach((button) => {
+  button.addEventListener("click", () => applyMemoMarkdownAction(button.dataset.memoMarkdownAction));
 });
 
 addReadingAttachmentButton.addEventListener("click", () => addReadingAttachmentInput());

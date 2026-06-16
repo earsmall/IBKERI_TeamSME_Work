@@ -373,6 +373,13 @@
           </div>
           <div class="wide-field">
             <label for="memoContent">&#45236;&#50857;</label>
+            <div class="markdown-toolbar" aria-label="memo markdown controls">
+              <button type="button" data-memo-markdown-action="heading" title="&#51228;&#47785;">#</button>
+              <button type="button" data-memo-markdown-action="bold" title="&#44405;&#44172;">B</button>
+              <button type="button" data-memo-markdown-action="italic" title="&#44592;&#50872;&#51076;">I</button>
+              <button type="button" data-memo-markdown-action="list" title="&#47785;&#47197;">&#8226;</button>
+              <button type="button" data-memo-markdown-action="code" title="&#53076;&#46300;">&lt;/&gt;</button>
+            </div>
             <textarea id="memoContent" name="content" rows="8" required></textarea>
           </div>
           <p class="form-message" id="memoFormMessage" role="status"></p>
@@ -648,6 +655,17 @@
             <button class="primary-button" id="saveAdminRolesButton" type="button">&#51200;&#51109;</button>
           </div>
           <p class="admin-help">&#54016;&#50896;&#48324; &#44288;&#47532;&#51088; &#44428;&#54620;&#44284; &#47196;&#44536;&#51064; &#44428;&#54620;&#51012; &#49444;&#51221;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;. &#49325;&#51228;&#47196; &#48320;&#44221;&#54620; &#49324;&#50857;&#51088;&#45716; &#47196;&#44536;&#51064;&#54624; &#49688; &#50630;&#49845;&#45768;&#45796;.</p>
+          <div class="admin-add-user">
+            <div>
+              <label for="newAdminUserId">&#49324;&#48264;</label>
+              <input id="newAdminUserId" type="text" inputmode="numeric" placeholder="43222">
+            </div>
+            <div>
+              <label for="newAdminUserName">&#51060;&#47492;</label>
+              <input id="newAdminUserName" type="text" placeholder="&#51060;&#47492;">
+            </div>
+            <button class="ghost-button" id="addAdminUserButton" type="button">&#47716;&#48260; &#52628;&#44032;</button>
+          </div>
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
