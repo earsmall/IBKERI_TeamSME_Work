@@ -392,6 +392,7 @@ const workFilterEndDate = document.querySelector("#workFilterEndDate");
 const workFilterAssignee = document.querySelector("#workFilterAssignee");
 const workFilterStatus = document.querySelector("#workFilterStatus");
 const workFilterCategory = document.querySelector("#workFilterCategory");
+const clearWorkFiltersButton = document.querySelector("#clearWorkFiltersButton");
 const scheduleFormPanel = document.querySelector("#scheduleFormPanel");
 const scheduleForm = document.querySelector("#scheduleForm");
 const scheduleFormTitle = document.querySelector("#scheduleFormTitle");
@@ -509,6 +510,7 @@ const searchInput = document.querySelector("#searchInput");
 const startDateFilter = document.querySelector("#startDateFilter");
 const endDateFilter = document.querySelector("#endDateFilter");
 const categoryTwo = document.querySelector("#categoryTwo");
+const clearBoardFiltersButton = document.querySelector("#clearBoardFiltersButton");
 const postForm = document.querySelector("#postForm");
 const postPanel = document.querySelector("#postPanel");
 const postDate = document.querySelector("#postDate");
@@ -953,9 +955,11 @@ function showWorkDashboardView() {
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ub300\uc26c\ubcf4\ub4dc";
   viewHeading.classList.remove("hidden");
+  boardActions.classList.remove("hidden");
   workFilters.classList.remove("hidden");
   workDashboardPanel.classList.remove("hidden");
-  newPostButton.classList.add("hidden");
+  newPostButton.classList.remove("hidden");
+  deleteSelectedButton.classList.add("hidden");
   setMenuActive(menuWorkDashboardButton);
   renderWorkDashboard();
 }
@@ -3903,7 +3907,7 @@ newPostButton.addEventListener("click", () => {
     return;
   }
 
-  if (activeView === "work-list") {
+  if (activeView === "work-list" || activeView === "work-dashboard") {
     if (workFormPanel.classList.contains("hidden")) {
       clearWorkForm();
       setWorkFormOpen(true);
@@ -4311,11 +4315,30 @@ logoutButton.addEventListener("click", async () => {
   setView(null);
 });
 
+clearBoardFiltersButton.addEventListener("click", () => {
+  searchInput.value = "";
+  startDateFilter.value = "";
+  endDateFilter.value = "";
+  categoryTwo.value = "";
+  currentBoardPage = 1;
+  renderBoard();
+});
+
 [searchInput, startDateFilter, endDateFilter, categoryTwo].forEach((control) => {
   control.addEventListener("input", () => {
     currentBoardPage = 1;
     renderBoard();
   });
+});
+
+clearWorkFiltersButton.addEventListener("click", () => {
+  workFilterStartDate.value = "";
+  workFilterEndDate.value = "";
+  workFilterAssignee.value = "";
+  workFilterStatus.value = "";
+  workFilterCategory.value = "";
+  renderWorkList();
+  renderWorkDashboard();
 });
 
 [workFilterStartDate, workFilterEndDate, workFilterAssignee, workFilterStatus, workFilterCategory].forEach((control) => {

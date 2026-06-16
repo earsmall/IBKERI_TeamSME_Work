@@ -432,7 +432,7 @@ textarea:focus {
 
 .controls {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 160px 160px 180px;
+  grid-template-columns: minmax(240px, 1fr) 160px 160px 180px auto;
   gap: 12px;
   align-items: end;
   padding: 16px;
@@ -784,7 +784,7 @@ textarea:focus {
 
 .work-filters {
   display: grid;
-  grid-template-columns: 150px 150px 180px 160px 180px;
+  grid-template-columns: 150px 150px 180px 160px 180px auto;
   gap: 12px;
   align-items: end;
   padding: 16px;
@@ -811,6 +811,11 @@ textarea:focus {
 .work-filters select:focus {
   border-color: #85b9e6;
   box-shadow: 0 0 0 3px rgba(133, 185, 230, 0.18);
+}
+
+.filter-reset-field {
+  display: flex;
+  align-items: end;
 }
 
 .work-form .wide-field {
