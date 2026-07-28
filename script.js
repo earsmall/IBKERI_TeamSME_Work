@@ -164,7 +164,7 @@ const SME_STATS_GROUPS = [
         title: "1. 자영업자 기본현황",
         items: [
           ["성/종사상지위별 취업자(경제활동인구조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1DA7028S&conn_path=I2"],
-          ["시도·산업·종사상지위별 종사자수(전국사업체조사, 국가데이터처)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K52F01&conn_path=I2"],
+          ["시도·산업·종사상지위별 종사자수(전국사업체조사, 국가데이터처)", "http://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1K52F04&tmprScrId=20260728105603278_233938f6afe34833"],
           ["소득5분위별 가구주 종사상지위별 자산, 부채, 소득 현황(가계금융복지조사, 국가데이터처 등)", "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1HDAAA13&conn_path=I2"]
         ]
       },
