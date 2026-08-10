@@ -2827,13 +2827,44 @@ td:nth-child(5) {
 
 .work-update-form {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 72px;
-  gap: 8px;
-  margin-bottom: 12px;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  background: #f7f9fc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 
 .work-update-form.hidden {
   display: none;
+}
+
+.work-update-form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.work-update-form-field label {
+  color: #40505f;
+  font-weight: 800;
+}
+
+.work-update-content-field,
+.work-update-form-actions {
+  grid-column: 1 / -1;
+}
+
+.work-update-content-field textarea {
+  min-height: 180px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.work-update-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .work-update-table-wrap {
@@ -2871,10 +2902,55 @@ td:nth-child(5) {
   width: 150px;
 }
 
+.work-update-table th:nth-child(3),
+.work-update-table td:nth-child(3) {
+  width: 130px;
+}
+
 .work-update-table .work-update-actions-header,
 .work-update-table .action-cell {
   width: 130px;
   text-align: center;
+}
+
+.work-update-title-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #143e63;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+}
+
+.work-update-title-button:hover {
+  text-decoration: underline;
+}
+
+.work-update-detail-row td {
+  padding: 0;
+}
+
+.work-update-detail {
+  padding: 20px 24px;
+  background: #f8fbfe;
+  color: #263442;
+  font-weight: 400;
+  white-space: normal;
+}
+
+@media (max-width: 700px) {
+  .work-update-form {
+    grid-template-columns: 1fr;
+  }
+
+  .work-update-date-field,
+  .work-update-content-field,
+  .work-update-form-actions {
+    grid-column: 1;
+  }
 }
 
 .markdown-body {

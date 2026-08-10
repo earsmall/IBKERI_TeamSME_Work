@@ -378,6 +378,9 @@ const workNoEndDate = document.querySelector("#workNoEndDate");
 const workAlwaysOn = document.querySelector("#workAlwaysOn");
 const workTitle = document.querySelector("#workTitle");
 const workContent = document.querySelector("#workContent");
+const workUpdateTitle = document.querySelector("#workUpdateTitle");
+const cancelWorkUpdateButton = document.querySelector("#cancelWorkUpdateButton");
+const saveWorkUpdateButton = document.querySelector("#saveWorkUpdateButton");
 const workAssigneeChoices = document.querySelector("#workAssigneeChoices");
 const workStatus = document.querySelector("#workStatus");
 const workCategory = document.querySelector("#workCategory");
@@ -1756,7 +1759,13 @@ function showReadingsView() {
     loadReadings();
     return;
   }
-  renderReadings();
+  renderReadings({ preserveSelectedDate: activeReadingsView === "calendar" });
+}
+
+function resetReadingsCalendarToToday() {
+  const today = new Date();
+  selectedReadingDate = getLocalDateValue(today);
+  currentReadingsCalendarDate = new Date(today.getFullYear(), today.getMonth(), 1);
 }
 
 function showLinkSitesView() {
@@ -1892,6 +1901,8 @@ function showWorkDetailView(itemId) {
   workUpdateForm.reset();
   delete workUpdateForm.dataset.editUpdateId;
   workUpdateDate.value = getLocalDateValue(new Date());
+  saveWorkUpdateButton.textContent = "\ub4f1\ub85d";
+  cancelWorkUpdateButton.classList.add("hidden");
 
   workDetailPeriod.textContent = formatWorkPeriod(item);
   workDetailTitle.textContent = item.title;
@@ -2431,7 +2442,7 @@ async function loadReadings() {
     baseReadingItems = [];
   }
   mergeReadingItems();
-  renderReadings();
+  renderReadings({ preserveSelectedDate: activeReadingsView === "calendar" });
 }
 
 function addReadingAttachmentInput(attachment = {}) {
@@ -3014,11 +3025,17 @@ function renderWorkUpdates(item) {
   updates.forEach((update) => {
     const row = document.createElement("tr");
     const date = document.createElement("td");
-    const content = document.createElement("td");
+    const title = document.createElement("td");
+    const author = document.createElement("td");
     const actions = document.createElement("td");
 
     date.textContent = formatShortDate(update.date);
-    content.textContent = update.content;
+    const titleButton = document.createElement("button");
+    titleButton.type = "button";
+    titleButton.className = "work-update-title-button";
+    titleButton.textContent = update.title || update.content || "(제목 없음)";
+    title.append(titleButton);
+    author.textContent = update.authorName || item.authorName || "";
     actions.className = "action-cell";
 
     if (canEdit) {
@@ -3028,9 +3045,12 @@ function renderWorkUpdates(item) {
       edit.textContent = "\uc218\uc815";
       edit.addEventListener("click", () => {
         workUpdateDate.value = normalizeDateValue(update.date);
+        workUpdateTitle.value = update.title || update.content || "";
         workUpdateContent.value = update.content;
         workUpdateForm.dataset.editUpdateId = update.id;
-        workUpdateContent.focus();
+        saveWorkUpdateButton.textContent = "수정";
+        cancelWorkUpdateButton.classList.remove("hidden");
+        workUpdateTitle.focus();
       });
 
       const remove = document.createElement("button");
@@ -3051,8 +3071,24 @@ function renderWorkUpdates(item) {
       actions.append(edit, remove);
     }
 
-    row.append(date, content, actions);
+    row.append(date, title, author, actions);
     workUpdateRows.append(row);
+
+    const detailRow = document.createElement("tr");
+    detailRow.className = "work-update-detail-row hidden";
+    const detailCell = document.createElement("td");
+    detailCell.colSpan = 4;
+    const detail = document.createElement("div");
+    detail.className = "work-update-detail markdown-body";
+    detail.innerHTML = renderMarkdown(update.content || "");
+    detailCell.append(detail);
+    detailRow.append(detailCell);
+    workUpdateRows.append(detailRow);
+
+    titleButton.addEventListener("click", () => {
+      detailRow.classList.toggle("hidden");
+      titleButton.setAttribute("aria-expanded", String(!detailRow.classList.contains("hidden")));
+    });
   });
 
   workUpdateEmpty.classList.toggle("hidden", updates.length > 0);
@@ -3784,12 +3820,17 @@ workUpdateForm.addEventListener("submit", async (event) => {
   if (!item || !canEditWorkItem(item)) return;
 
   const formData = new FormData(workUpdateForm);
+  const user = getCurrentUser();
+  const existingUpdate = (item.updates || []).find((savedUpdate) => savedUpdate.id === workUpdateForm.dataset.editUpdateId);
   const update = {
     id: workUpdateForm.dataset.editUpdateId || String(Date.now()),
     date: normalizeDateValue(String(formData.get("date"))),
-    content: String(formData.get("content")).trim()
+    title: String(formData.get("title")).trim(),
+    content: String(formData.get("content")).trim(),
+    authorId: existingUpdate?.authorId || user?.id || "",
+    authorName: existingUpdate?.authorName || user?.name || ""
   };
-  if (!update.date || !update.content) return;
+  if (!update.date || !update.title || !update.content) return;
 
   const updates = workUpdateForm.dataset.editUpdateId
     ? (item.updates || []).map((savedUpdate) => savedUpdate.id === update.id ? update : savedUpdate)
@@ -3805,11 +3846,22 @@ workUpdateForm.addEventListener("submit", async (event) => {
     workUpdateForm.reset();
     delete workUpdateForm.dataset.editUpdateId;
     workUpdateDate.value = getLocalDateValue(new Date());
-    workUpdateContent.focus();
+    saveWorkUpdateButton.textContent = "등록";
+    cancelWorkUpdateButton.classList.add("hidden");
+    workUpdateTitle.focus();
   } catch (error) {
     console.error("Failed to save work update.", error);
     window.alert("\uc9c4\ud589 \ud604\ud669\uc744 \uc800\uc7a5\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. Firebase \uc5f0\uacb0 \ub610\ub294 \uad8c\ud55c\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
   }
+});
+
+cancelWorkUpdateButton.addEventListener("click", () => {
+  workUpdateForm.reset();
+  delete workUpdateForm.dataset.editUpdateId;
+  workUpdateDate.value = getLocalDateValue(new Date());
+  saveWorkUpdateButton.textContent = "등록";
+  cancelWorkUpdateButton.classList.add("hidden");
+  workUpdateTitle.focus();
 });
 
 memoForm.addEventListener("submit", async (event) => {
@@ -4072,6 +4124,7 @@ menuReadingsListButton.addEventListener("click", () => {
 
 menuReadingsButton.addEventListener("click", () => {
   activeReadingsView = "calendar";
+  resetReadingsCalendarToToday();
   showReadingsView();
 });
 
@@ -4262,7 +4315,8 @@ readingsListTabButton.addEventListener("click", () => {
 
 readingsCalendarTabButton.addEventListener("click", () => {
   activeReadingsView = "calendar";
-  renderReadings();
+  resetReadingsCalendarToToday();
+  renderReadings({ preserveSelectedDate: true });
 });
 
 openReadingSubmissionButton.addEventListener("click", () => {
