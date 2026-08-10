@@ -698,7 +698,10 @@ function normalizeWorkItem(id, item) {
     ? item.updates.map((update) => ({
       id: update.id || String(Date.now()),
       date: normalizeDateValue(update.date || ""),
-      content: update.content || ""
+      title: update.title || "",
+      content: update.content || "",
+      authorId: update.authorId || "",
+      authorName: update.authorName || getUserName(update.authorId || "")
     }))
     : [];
   return {
