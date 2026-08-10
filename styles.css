@@ -106,6 +106,19 @@ h1 {
   line-height: 1.55;
 }
 
+#menuMemoListButton {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.memo-new-badge {
+  color: #ffd84d;
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
 .login-form {
   display: grid;
   gap: 10px;

@@ -356,6 +356,7 @@ const menuSmeStatsButton = document.querySelector("#menuSmeStatsButton");
 const menuDashboardButton = document.querySelector("#menuDashboardButton");
 const menuLinkSitesButton = document.querySelector("#menuLinkSitesButton");
 const menuMemoListButton = document.querySelector("#menuMemoListButton");
+const memoNewBadge = document.querySelector("#memoNewBadge");
 const prevMonthButton = document.querySelector("#prevMonthButton");
 const nextMonthButton = document.querySelector("#nextMonthButton");
 const boardRows = document.querySelector("#boardRows");
@@ -907,6 +908,66 @@ function getCurrentUser() {
   return JSON.parse(sessionStorage.getItem("currentUser") || "null");
 }
 
+function getMemoReadStateKey(userId) {
+  return `memoReadState:${userId}`;
+}
+
+function loadMemoReadState(userId) {
+  try {
+    return JSON.parse(localStorage.getItem(getMemoReadStateKey(userId)) || "null");
+  } catch (error) {
+    console.warn("Failed to load memo read state.", error);
+    return null;
+  }
+}
+
+function saveMemoReadState(userId, state) {
+  localStorage.setItem(getMemoReadStateKey(userId), JSON.stringify(state));
+}
+
+function syncMemoNewBadge() {
+  const user = getCurrentUser();
+  if (!memoNewBadge || !user) {
+    memoNewBadge?.classList.add("hidden");
+    return;
+  }
+
+  const currentIds = memoItems.map((item) => item.id);
+  let state = loadMemoReadState(user.id);
+  if (!state || !state.initializedAt) {
+    state = { initializedAt: new Date().toISOString(), knownIds: [...currentIds], readIds: [...currentIds] };
+    saveMemoReadState(user.id, state);
+    memoNewBadge.classList.add("hidden");
+    return;
+  }
+
+  const knownIds = new Set(Array.isArray(state.knownIds) ? state.knownIds : []);
+  const readIds = new Set(Array.isArray(state.readIds) ? state.readIds : []);
+  memoItems.forEach((item) => {
+    knownIds.add(item.id);
+    if (item.authorId === user.id) readIds.add(item.id);
+  });
+  saveMemoReadState(user.id, { initializedAt: state.initializedAt, knownIds: [...knownIds], readIds: [...readIds] });
+  const hasUnreadMemo = memoItems.some((item) => (
+    (item.createdAt || "") > state.initializedAt
+    && item.authorId !== user.id
+    && !readIds.has(item.id)
+  ));
+  memoNewBadge.classList.toggle("hidden", !hasUnreadMemo);
+}
+
+function markMemoAsRead(itemId) {
+  const user = getCurrentUser();
+  if (!user) return;
+  const state = loadMemoReadState(user.id) || { initializedAt: new Date().toISOString(), knownIds: [], readIds: [] };
+  const knownIds = new Set(Array.isArray(state.knownIds) ? state.knownIds : []);
+  const readIds = new Set(Array.isArray(state.readIds) ? state.readIds : []);
+  knownIds.add(itemId);
+  readIds.add(itemId);
+  saveMemoReadState(user.id, { initializedAt: state.initializedAt, knownIds: [...knownIds], readIds: [...readIds] });
+  syncMemoNewBadge();
+}
+
 function getStoredUserRole(userId) {
   if (userId === "admin") return "admin";
   const baseUser = VALID_USERS.find((user) => user.id === userId);
@@ -938,6 +999,7 @@ function setView(user) {
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
     changePasswordButton.classList.remove("hidden");
+    syncMemoNewBadge();
     deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
     postAuthor.value = user.name;
     setDefaultDate();
@@ -1929,6 +1991,7 @@ function showWorkDetailReturnView() {
 function showMemoDetailView(itemId) {
   const item = memoItems.find((memo) => memo.id === itemId);
   if (!item) return;
+  markMemoAsRead(item.id);
   const canManage = canManageMemoItem(item);
 
   setMemoFormOpen(false);
@@ -3548,6 +3611,7 @@ function renderScheduleList() {
 
 function renderMemoList() {
   if (!memoRows) return;
+  syncMemoNewBadge();
   const sortedItems = [...memoItems].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   const canDelete = isAdminUser(getCurrentUser());
   memoDeleteSelectHeader.classList.toggle("hidden", !canDelete);
