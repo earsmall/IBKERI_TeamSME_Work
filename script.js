@@ -53,7 +53,8 @@ const LINK_SITE_SECTIONS = [
       ["웹메일", "https://mail.ibk.co.kr/mail/login"],
       ["EDGE 연수", "https://ibkedge.kbitube.or.kr/platformTubeWeb/CareLogin.do?cmd=moveLogin"],
       ["IBK에듀", "https://edu.ibk.co.kr/login"],
-      ["법정의무교육", "https://ibk.getsmart.co.kr/members/login?returnUrl=http%3A%2F%2Fibk.getsmart.co.kr%2F"]
+      ["법정의무교육", "https://ibk.getsmart.co.kr/members/login?returnUrl=http%3A%2F%2Fibk.getsmart.co.kr%2F"],
+      ["IBKERI Research Hub", "https://research-hub-mocha-zeta.vercel.app/"]
     ]
   },
   {
@@ -292,7 +293,8 @@ const VALID_USERS = [
   { id: "44975", name: "\uc624\uc815\ud0dd", role: "member" },
   { id: "43343", name: "\uae40\ub0a8\ud76c", role: "member" },
   { id: "42128", name: "\uae40\uc218\uc601", role: "member" },
-  { id: "22194", name: "\uc2ec\ud615\uc900", role: "member" }
+  { id: "22194", name: "\uc2ec\ud615\uc900", role: "member" },
+  { id: "guest", name: "guest", role: "member" }
 ];
 const DEFAULT_VALID_USERS = VALID_USERS.map((user) => ({ ...user }));
 
@@ -332,6 +334,7 @@ const boardView = document.querySelector("#boardView");
 const loginForm = document.querySelector("#loginForm");
 const loginError = document.querySelector("#loginError");
 const loginBadge = document.querySelector("#loginBadge");
+const meetingMenuGroup = document.querySelector("#meetingMenuGroup");
 const logoutButton = document.querySelector("#logoutButton");
 const adminPageButton = document.querySelector("#adminPageButton");
 const changePasswordButton = document.querySelector("#changePasswordButton");
@@ -599,7 +602,7 @@ function normalizeConfiguredUsers(users) {
   const seen = new Set(["admin"]);
   const defaultUserMap = new Map(DEFAULT_VALID_USERS.map((user) => [user.id, user]));
   const sourceUsers = Array.isArray(users) && users.length > 0
-    ? users
+    ? [...users, DEFAULT_VALID_USERS.find((user) => user.id === "guest")]
     : DEFAULT_VALID_USERS.filter((user) => user.id !== "admin");
 
   return [
@@ -978,6 +981,10 @@ function isAdminUser(user) {
   return Boolean(user && getStoredUserRole(user.id) === "admin");
 }
 
+function canAccessMeetings(user = getCurrentUser()) {
+  return Boolean(user && user.id !== "guest");
+}
+
 function syncCurrentUserRole() {
   const user = getCurrentUser();
   if (!user) return;
@@ -998,6 +1005,7 @@ function setView(user) {
     const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
+    meetingMenuGroup.classList.toggle("hidden", !canAccessMeetings(user));
     changePasswordButton.classList.remove("hidden");
     syncMemoNewBadge();
     deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
@@ -1013,6 +1021,7 @@ function setView(user) {
   boardView.classList.add("hidden");
   loginBadge.textContent = "";
   adminPageButton.classList.add("hidden");
+  meetingMenuGroup.classList.remove("hidden");
   changePasswordButton.classList.add("hidden");
   deleteSelectedButton.classList.add("hidden");
   postAuthor.value = "";
@@ -1787,6 +1796,10 @@ function renderLinkSites() {
 
 function showListView() {
   const user = getCurrentUser();
+  if (!canAccessMeetings(user)) {
+    showWorkDashboardView();
+    return;
+  }
   activeView = "meeting-list";
   hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \ubaa9\ub85d";
@@ -1801,6 +1814,10 @@ function showListView() {
 }
 
 function showCalendarView() {
+  if (!canAccessMeetings()) {
+    showWorkDashboardView();
+    return;
+  }
   activeView = "meeting-calendar";
   hideMainPanels();
   viewHeading.textContent = "\ud68c\uc758\ub85d - \uce98\ub9b0\ub354";
