@@ -334,7 +334,9 @@ const boardView = document.querySelector("#boardView");
 const loginForm = document.querySelector("#loginForm");
 const loginError = document.querySelector("#loginError");
 const loginBadge = document.querySelector("#loginBadge");
+const workMenuGroup = document.querySelector("#workMenuGroup");
 const meetingMenuGroup = document.querySelector("#meetingMenuGroup");
+const memoMenuGroup = document.querySelector("#memoMenuGroup");
 const logoutButton = document.querySelector("#logoutButton");
 const adminPageButton = document.querySelector("#adminPageButton");
 const changePasswordButton = document.querySelector("#changePasswordButton");
@@ -985,6 +987,15 @@ function canAccessMeetings(user = getCurrentUser()) {
   return Boolean(user && user.id !== "guest");
 }
 
+function canAccessGuestRestrictedViews(user = getCurrentUser()) {
+  return Boolean(user && user.id !== "guest");
+}
+
+function showGuestHome() {
+  activeReadingsView = "list";
+  showReadingsView();
+}
+
 function syncCurrentUserRole() {
   const user = getCurrentUser();
   if (!user) return;
@@ -1005,7 +1016,9 @@ function setView(user) {
     const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
+    workMenuGroup.classList.toggle("hidden", !canAccessGuestRestrictedViews(user));
     meetingMenuGroup.classList.toggle("hidden", !canAccessMeetings(user));
+    memoMenuGroup.classList.toggle("hidden", !canAccessGuestRestrictedViews(user));
     changePasswordButton.classList.remove("hidden");
     syncMemoNewBadge();
     deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
@@ -1021,13 +1034,19 @@ function setView(user) {
   boardView.classList.add("hidden");
   loginBadge.textContent = "";
   adminPageButton.classList.add("hidden");
+  workMenuGroup.classList.remove("hidden");
   meetingMenuGroup.classList.remove("hidden");
+  memoMenuGroup.classList.remove("hidden");
   changePasswordButton.classList.add("hidden");
   deleteSelectedButton.classList.add("hidden");
   postAuthor.value = "";
 }
 
 function showWorkDashboardView() {
+  if (!canAccessGuestRestrictedViews()) {
+    showGuestHome();
+    return;
+  }
   activeView = "work-dashboard";
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ub300\uc26c\ubcf4\ub4dc";
@@ -1043,6 +1062,10 @@ function showWorkDashboardView() {
 
 function showWorkListView() {
   const user = getCurrentUser();
+  if (!canAccessGuestRestrictedViews(user)) {
+    showGuestHome();
+    return;
+  }
   activeView = "work-list";
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ubaa9\ub85d";
@@ -1911,6 +1934,10 @@ function showScheduleCalendarView() {
 
 function showMemoListView() {
   const user = getCurrentUser();
+  if (!canAccessGuestRestrictedViews(user)) {
+    showGuestHome();
+    return;
+  }
   activeView = "memo-list";
   hideMainPanels();
   viewHeading.textContent = "\uba54\ubaa8 - \ubaa9\ub85d";
@@ -1965,6 +1992,10 @@ function showDetailView(postId) {
 }
 
 function showWorkDetailView(itemId) {
+  if (!canAccessGuestRestrictedViews()) {
+    showGuestHome();
+    return;
+  }
   const item = workItems.find((workItem) => workItem.id === itemId);
   if (!item) return;
   currentWorkDetailId = item.id;
@@ -2006,6 +2037,10 @@ function showWorkDetailReturnView() {
 }
 
 function showMemoDetailView(itemId) {
+  if (!canAccessGuestRestrictedViews()) {
+    showGuestHome();
+    return;
+  }
   const item = memoItems.find((memo) => memo.id === itemId);
   if (!item) return;
   markMemoAsRead(item.id);

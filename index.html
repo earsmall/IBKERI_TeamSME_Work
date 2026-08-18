@@ -41,38 +41,38 @@
 
       <div class="workspace-layout">
         <aside class="side-menu" aria-label="workspace menu">
-          <div class="menu-group">
-            <div class="menu-title">1. &#50629;&#47924; &#54788;&#54889;</div>
+          <div class="menu-group" id="workMenuGroup">
+            <div class="menu-title">&#50629;&#47924; &#54788;&#54889;</div>
             <button class="menu-item active" id="menuWorkDashboardButton" type="button">&#8226; &#45824;&#49772;&#48372;&#46300;</button>
             <button class="menu-item" id="menuWorkListButton" type="button">&#8226; &#47785;&#47197;</button>
           </div>
           <div class="menu-group" id="meetingMenuGroup">
-            <div class="menu-title">2. &#54924;&#51032;&#47197;</div>
+            <div class="menu-title">&#54924;&#51032;&#47197;</div>
             <button class="menu-item" id="menuListButton" type="button">&#8226; &#47785;&#47197;</button>
             <button class="menu-item" id="menuCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <div class="menu-title">3. 읽을거리</div>
+            <div class="menu-title">읽을거리</div>
             <button class="menu-item" id="menuReadingsListButton" type="button">&#8226; 목록</button>
             <button class="menu-item" id="menuReadingsButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <div class="menu-title">4. &#51068;&#51221;</div>
+            <div class="menu-title">&#51068;&#51221;</div>
             <button class="menu-item" id="menuScheduleListButton" type="button">&#8226; &#47785;&#47197;</button>
             <button class="menu-item" id="menuScheduleCalendarButton" type="button">&#8226; &#52888;&#47536;&#45908;</button>
           </div>
           <div class="menu-group">
-            <button class="menu-title menu-title-button" id="menuSmeStatsButton" type="button">5. 중소기업 통계</button>
+            <button class="menu-title menu-title-button" id="menuSmeStatsButton" type="button">중소기업 통계</button>
           </div>
           <div class="menu-group">
-            <button class="menu-title menu-title-button" id="menuDashboardButton" type="button">6. 시각화 대쉬보드</button>
+            <button class="menu-title menu-title-button" id="menuDashboardButton" type="button">시각화 대쉬보드</button>
           </div>
           <div class="menu-group">
-            <button class="menu-title menu-title-button" id="menuLinkSitesButton" type="button">7. 링크사이트</button>
+            <button class="menu-title menu-title-button" id="menuLinkSitesButton" type="button">링크사이트</button>
           </div>
-          <div class="menu-group">
+          <div class="menu-group" id="memoMenuGroup">
             <button class="menu-title menu-title-button" id="menuMemoListButton" type="button">
-              <span>8. &#47700;&#47784;</span>
+              <span>&#47700;&#47784;</span>
               <span class="memo-new-badge hidden" id="memoNewBadge">New!</span>
             </button>
             <a class="summary-note-link" href="https://earsmall.github.io/IBKERI/" target="_blank" rel="noopener noreferrer">
@@ -831,6 +831,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script type="module" src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
   <script src="readings_export.js"></script>
-  <script src="script.js?v=20260819-guest-access"></script>
+  <script src="script.js?v=20260819-guest-menu-access"></script>
 </body>
 </html>
