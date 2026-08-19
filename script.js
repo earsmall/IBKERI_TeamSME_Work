@@ -2976,7 +2976,11 @@ function escapeHtml(value) {
 }
 
 function getSafeLinkUrl(value) {
-  const url = String(value || "").trim();
+  let url = String(value || "").trim();
+  url = url.replace(
+    /^(https?:\/\/(?:www\.)?molit\.go\.kr)\/USR\/NEWS\/dtl\.jsp(?=\?|$)/i,
+    "$1/USR/NEWS/m_71/dtl.jsp"
+  );
   if (/^(https?:\/\/|mailto:)/i.test(url)) return escapeHtml(url);
   return "";
 }

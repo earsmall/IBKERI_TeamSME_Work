@@ -2454,6 +2454,18 @@ td:nth-child(5) {
   white-space: pre-line;
 }
 
+.reading-details a {
+  color: #ffe66d;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reading-details a:hover,
+.reading-details a:focus-visible {
+  color: #fff3a3;
+}
+
 .reading-card-actions {
   display: flex;
   justify-content: flex-end;
