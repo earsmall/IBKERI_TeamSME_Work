@@ -984,16 +984,11 @@ function isAdminUser(user) {
 }
 
 function canAccessMeetings(user = getCurrentUser()) {
-  return Boolean(user && user.id !== "guest");
+  return Boolean(user);
 }
 
-function canAccessGuestRestrictedViews(user = getCurrentUser()) {
+function canOpenRestrictedDetail(user = getCurrentUser()) {
   return Boolean(user && user.id !== "guest");
-}
-
-function showGuestHome() {
-  activeReadingsView = "list";
-  showReadingsView();
 }
 
 function syncCurrentUserRole() {
@@ -1016,9 +1011,9 @@ function setView(user) {
     const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
-    workMenuGroup.classList.toggle("hidden", !canAccessGuestRestrictedViews(user));
-    meetingMenuGroup.classList.toggle("hidden", !canAccessMeetings(user));
-    memoMenuGroup.classList.toggle("hidden", !canAccessGuestRestrictedViews(user));
+    workMenuGroup.classList.remove("hidden");
+    meetingMenuGroup.classList.remove("hidden");
+    memoMenuGroup.classList.remove("hidden");
     changePasswordButton.classList.remove("hidden");
     syncMemoNewBadge();
     deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user) || boardList.classList.contains("hidden"));
@@ -1043,10 +1038,6 @@ function setView(user) {
 }
 
 function showWorkDashboardView() {
-  if (!canAccessGuestRestrictedViews()) {
-    showGuestHome();
-    return;
-  }
   activeView = "work-dashboard";
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ub300\uc26c\ubcf4\ub4dc";
@@ -1062,10 +1053,6 @@ function showWorkDashboardView() {
 
 function showWorkListView() {
   const user = getCurrentUser();
-  if (!canAccessGuestRestrictedViews(user)) {
-    showGuestHome();
-    return;
-  }
   activeView = "work-list";
   hideMainPanels();
   viewHeading.textContent = "\uc5c5\ubb34 \ud604\ud669 - \ubaa9\ub85d";
@@ -1934,10 +1921,6 @@ function showScheduleCalendarView() {
 
 function showMemoListView() {
   const user = getCurrentUser();
-  if (!canAccessGuestRestrictedViews(user)) {
-    showGuestHome();
-    return;
-  }
   activeView = "memo-list";
   hideMainPanels();
   viewHeading.textContent = "\uba54\ubaa8 - \ubaa9\ub85d";
@@ -1965,6 +1948,7 @@ function showAdminView() {
 }
 
 function showDetailView(postId) {
+  if (!canOpenRestrictedDetail()) return;
   const post = boardItems.find((item) => item.id === postId);
   if (!post) return;
   const user = getCurrentUser();
@@ -1992,10 +1976,7 @@ function showDetailView(postId) {
 }
 
 function showWorkDetailView(itemId) {
-  if (!canAccessGuestRestrictedViews()) {
-    showGuestHome();
-    return;
-  }
+  if (!canOpenRestrictedDetail()) return;
   const item = workItems.find((workItem) => workItem.id === itemId);
   if (!item) return;
   currentWorkDetailId = item.id;
@@ -2037,10 +2018,6 @@ function showWorkDetailReturnView() {
 }
 
 function showMemoDetailView(itemId) {
-  if (!canAccessGuestRestrictedViews()) {
-    showGuestHome();
-    return;
-  }
   const item = memoItems.find((memo) => memo.id === itemId);
   if (!item) return;
   markMemoAsRead(item.id);
@@ -2130,7 +2107,10 @@ function renderCalendar() {
       button.className = `calendar-event ${tagColor[normalizeType(post.type2)] || "blue"}`;
       button.type = "button";
       button.textContent = post.title;
-      button.addEventListener("click", () => showDetailView(post.id));
+      button.disabled = !canOpenRestrictedDetail();
+      if (!button.disabled) {
+        button.addEventListener("click", () => showDetailView(post.id));
+      }
       cell.append(button);
     });
 
@@ -3271,7 +3251,10 @@ function renderWorkDashboard() {
       titleButton.className = "dashboard-title-button";
       titleButton.type = "button";
       titleButton.textContent = item.title;
-      titleButton.addEventListener("click", () => showWorkDetailView(item.id));
+      titleButton.disabled = !canOpenRestrictedDetail();
+      if (!titleButton.disabled) {
+        titleButton.addEventListener("click", () => showWorkDetailView(item.id));
+      }
       title.append(titleButton);
 
       const category = document.createElement("p");
@@ -3471,7 +3454,10 @@ function renderBoard() {
     titleButton.className = "link-button";
     titleButton.type = "button";
     titleButton.textContent = item.title;
-    titleButton.addEventListener("click", () => showDetailView(item.id));
+    titleButton.disabled = !canOpenRestrictedDetail();
+    if (!titleButton.disabled) {
+      titleButton.addEventListener("click", () => showDetailView(item.id));
+    }
     title.append(titleButton);
 
     const topic = document.createElement("td");
@@ -3479,7 +3465,10 @@ function renderBoard() {
     topicButton.className = "link-button topic-link";
     topicButton.type = "button";
     topicButton.textContent = item.topic;
-    topicButton.addEventListener("click", () => showDetailView(item.id));
+    topicButton.disabled = !canOpenRestrictedDetail();
+    if (!topicButton.disabled) {
+      topicButton.addEventListener("click", () => showDetailView(item.id));
+    }
     topic.append(topicButton);
 
     const types = document.createElement("td");
@@ -3565,7 +3554,10 @@ function renderWorkList() {
     button.className = "link-button";
     button.type = "button";
     button.textContent = item.title;
-    button.addEventListener("click", () => showWorkDetailView(item.id));
+    button.disabled = !canOpenRestrictedDetail();
+    if (!button.disabled) {
+      button.addEventListener("click", () => showWorkDetailView(item.id));
+    }
     title.append(button);
 
     const assignee = document.createElement("td");
