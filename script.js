@@ -2988,7 +2988,7 @@ function getSafeLinkUrl(value) {
 function renderInlineMarkdown(value) {
   return escapeHtml(value)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
-      const safeUrl = getSafeLinkUrl(url);
+      const safeUrl = getSafeLinkUrl(url.replace(/&amp;/g, "&"));
       if (!safeUrl) return label;
       return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
     })
