@@ -991,6 +991,10 @@ function canOpenRestrictedDetail(user = getCurrentUser()) {
   return Boolean(user && user.id !== "guest");
 }
 
+function canCreateContent(user = getCurrentUser()) {
+  return Boolean(user && user.id !== "guest");
+}
+
 function syncCurrentUserRole() {
   const user = getCurrentUser();
   if (!user) return;
@@ -1008,6 +1012,7 @@ function setView(user) {
     const wasLoggedOut = boardView.classList.contains("hidden");
     loginView.classList.add("hidden");
     boardView.classList.remove("hidden");
+    boardView.classList.toggle("guest-mode", user.id === "guest");
     const roleLabel = isAdminUser(user) ? ko.admin : "\uc77c\ubc18";
     loginBadge.textContent = `${user.name} (${roleLabel}) ${ko.loggedIn}`;
     adminPageButton.classList.toggle("hidden", !isAdminUser(user));
@@ -1027,6 +1032,7 @@ function setView(user) {
 
   loginView.classList.remove("hidden");
   boardView.classList.add("hidden");
+  boardView.classList.remove("guest-mode");
   loginBadge.textContent = "";
   adminPageButton.classList.add("hidden");
   workMenuGroup.classList.remove("hidden");
@@ -1846,6 +1852,7 @@ function showReadingsView() {
   viewHeading.classList.remove("hidden");
   readingsPanel.classList.remove("hidden");
   newPostButton.classList.add("hidden");
+  openReadingSubmissionButton.classList.toggle("hidden", !canCreateContent());
   setMenuActive(activeReadingsView === "list" ? menuReadingsListButton : menuReadingsButton);
   if (!hasTriedLoadingBaseReadings) {
     loadReadings();
@@ -1901,7 +1908,7 @@ function showScheduleListView() {
   viewHeading.classList.remove("hidden");
   boardActions.classList.remove("hidden");
   scheduleListPanel.classList.remove("hidden");
-  newPostButton.classList.remove("hidden");
+  newPostButton.classList.toggle("hidden", !canCreateContent(user));
   deleteSelectedButton.classList.toggle("hidden", !isAdminUser(user));
   setMenuActive(menuScheduleListButton);
   renderScheduleList();
@@ -1914,7 +1921,7 @@ function showScheduleCalendarView() {
   viewHeading.classList.remove("hidden");
   boardActions.classList.remove("hidden");
   scheduleCalendarPanel.classList.remove("hidden");
-  newPostButton.classList.remove("hidden");
+  newPostButton.classList.toggle("hidden", !canCreateContent());
   setMenuActive(menuScheduleCalendarButton);
   renderScheduleCalendar();
 }
@@ -2575,6 +2582,7 @@ function setReadingAttachmentInputs(attachments = []) {
 }
 
 function setReadingSubmissionOpen(isOpen) {
+  if (isOpen && !canCreateContent()) return;
   readingSubmissionModal.classList.toggle("hidden", !isOpen);
   readingSubmissionTitle.textContent = editingReadingId ? "\uc77d\uc744\uac70\ub9ac \uc218\uc815" : "\uc77d\uc744\uac70\ub9ac \ub4f1\ub85d\ud558\uae30";
   if (isOpen) {
@@ -3543,9 +3551,11 @@ function renderWorkList() {
     }
 
     const start = document.createElement("td");
+    start.className = "work-date-cell";
     start.textContent = formatWorkStartDate(item);
 
     const end = document.createElement("td");
+    end.className = "work-date-cell";
     end.textContent = formatWorkEndDate(item);
 
     const title = document.createElement("td");
@@ -4050,6 +4060,7 @@ scheduleForm.addEventListener("submit", async (event) => {
 });
 
 newPostButton.addEventListener("click", () => {
+  if (!canCreateContent()) return;
   if (activeView === "memo-list") {
     if (memoFormPanel.classList.contains("hidden")) {
       clearMemoForm();
@@ -4431,6 +4442,7 @@ readingsCalendarTabButton.addEventListener("click", () => {
 });
 
 openReadingSubmissionButton.addEventListener("click", () => {
+  if (!canCreateContent()) return;
   clearReadingSubmissionForm();
   setReadingSubmissionOpen(true);
 });
@@ -4454,6 +4466,7 @@ readingSubmissionModal.addEventListener("click", (event) => {
 
 readingSubmissionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!canCreateContent()) return;
   let payload = null;
   try {
     payload = createReadingSubmissionPayload(readingSubmissionForm);

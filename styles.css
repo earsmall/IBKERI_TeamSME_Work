@@ -1067,6 +1067,17 @@ td:nth-child(5) {
   min-width: 900px;
 }
 
+#workTable .work-date-header,
+#workTable .work-date-cell {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.board-view.guest-mode #newPostButton,
+.board-view.guest-mode #openReadingSubmissionButton {
+  display: none;
+}
+
 #workTable th:nth-child(2),
 #workTable td:nth-child(2),
 #workTable th:nth-child(3),
